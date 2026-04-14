@@ -13,7 +13,7 @@ import time
 SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증 AI", page_icon="🏅", layout="wide")
 
-# CSS: 카카오톡 스타일 UI 및 고정 입력창
+# CSS: 카카오톡 스타일 UI
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -27,7 +27,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 비밀번호 체크
+# 비밀번호 체크 로직
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -43,93 +43,106 @@ if not st.session_state.authenticated:
             st.rerun()
     st.stop()
 
-# API 설정
+# API 키 설정
 API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 RAG 엔진: PDF 쪼개기 및 인덱싱 (핵심)
+# 📚 RAG 엔진: PDF 인덱싱 (에러 수정 버전)
 # ==========================================
 @st.cache_resource
 def build_vector_db():
     all_text = ""
     pdf_files = ["guide.pdf", "manual2.pdf"]
     
-    # 1. PDF에서 텍스트 추출
     progress_bar = st.progress(0)
-    st.write("📡 시스템 가동 중: 600페이지 지침서를 인덱싱하고 있습니다. (최초 1회만 소요)")
+    status_text = st.empty()
+    status_text.write("📡 시스템 가동 중: 600페이지 지침서를 분석하고 있습니다. (약 30초 소요)")
     
-    for idx, file in enumerate(pdf_files):
-        if os.path.exists(file):
-            reader = PdfReader(file)
-            for page in reader.pages:
-                all_text += page.extract_text()
-        progress_bar.progress((idx + 1) / len(pdf_files))
-    
-    # 2. 텍스트 조각내기 (Chunking)
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-    chunks = text_splitter.split_text(all_text)
-    
-    # 3. 벡터 DB 생성 (무료 구글 임베딩 사용)
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=API_KEY)
-    vector_db = FAISS.from_texts(chunks, embeddings)
-    
-    progress_bar.empty()
-    return vector_db
+    try:
+        for idx, file in enumerate(pdf_files):
+            if os.path.exists(file):
+                reader = PdfReader(file)
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text: all_text += text
+            progress_bar.progress((idx + 1) / len(pdf_files))
+        
+        # 텍스트 조각내기
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
+        chunks = text_splitter.split_text(all_text)
+        
+        # 벡터 DB 생성
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=API_KEY)
+        vector_db = FAISS.from_texts(chunks, embeddings)
+        
+        progress_bar.empty()
+        status_text.empty()
+        return vector_db
+    except Exception as e:
+        st.error(f"❌ 인덱싱 중 오류 발생: {e}")
+        return None
 
 # 엔진 가동
 vdb = build_vector_db()
 
 # ==========================================
-# 💬 채팅 로직
+# 💬 채팅 인터페이스
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 헤더 출력
-st.markdown("<div class='enterprise-header'><h1>🏅 인증조사 마스터 AI (초고속 RAG 버전)</h1></div>", unsafe_allow_html=True)
+# 헤더
+st.markdown("<div class='enterprise-header'><h1>🏅 인증조사 마스터 AI (RAG 엔진 가동)</h1></div>", unsafe_allow_html=True)
 
-# 채팅 내역 표시 컨테이너
+# 채팅 컨테이너 고정
 chat_container = st.container(height=500)
-with chat_box := chat_container:
+
+# 채팅 내역 표시
+with chat_container:
     for m in st.session_state.messages:
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
 
-# 질문 입력
-if prompt := st.chat_input("규정에 대해 무엇이든 물어보세요..."):
+# 질문 입력창 (에러 수정 포인트)
+if prompt := st.chat_input("지침서에 대해 궁금한 점을 물어보세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with chat_box:
-        with st.chat_message("user"): st.markdown(prompt)
+    
+    # 사용자 메시지 즉시 표시
+    with chat_container:
+        with st.chat_message("user"):
+            st.markdown(prompt)
         
+        # 답변 생성
         with st.chat_message("assistant"):
-            # 1. 관련 조각 찾기 (600페이지 중 딱 4조각만!)
-            docs = vdb.similarity_search(prompt, k=4)
-            context = "\n\n".join([doc.page_content for doc in docs])
-            
-            # 2. 좁혀진 범위로만 답변 생성
-            final_prompt = f"""너는 검단탑병원의 '인증조사 마스터 AI'야. 
-            아래 제공된 [지침서 조각] 내용만을 근거로 답변해줘. 
-            만약 지침서에 없는 내용이라면 모른다고 대답하고, 아는 척 하지마.
-            답변 끝에는 반드시 "[근거 내용: ...]"을 요약해서 달아줘.
-
-            [지침서 조각]
-            {context}
-
-            질문: {prompt}
-            """
-            
-            response_container = st.empty()
-            full_response = ""
-            
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            try:
-                # 데이터가 매우 작으므로 과부하 없이 즉시 응답
-                res = model.generate_content(final_prompt, stream=True)
-                for chunk in res:
-                    full_response += chunk.text
-                    response_container.markdown(full_response + "▌")
-                response_container.markdown(full_response)
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
-            except Exception as e:
-                st.error(f"⚠️ 시스템 과부하 또는 오류 발생: {e}")
+            if vdb is not None:
+                # 1. 관련 내용 검색
+                docs = vdb.similarity_search(prompt, k=4)
+                context = "\n\n".join([doc.page_content for doc in docs])
+                
+                # 2. 프롬프트 구성
+                final_prompt = f"""너는 검단탑병원의 '인증조사 마스터 AI'야. 
+                아래 제공된 [지침서 내용]만을 근거로 친절하고 정확하게 답변해줘. 
+                내용이 지침서에 없다면 모른다고 솔직하게 말해.
+                
+                [지침서 내용]
+                {context}
+                
+                질문: {prompt}
+                """
+                
+                response_placeholder = st.empty()
+                full_response = ""
+                
+                try:
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    res = model.generate_content(final_prompt, stream=True)
+                    for chunk in res:
+                        full_response += chunk.text
+                        response_placeholder.markdown(full_response + "▌")
+                    response_placeholder.markdown(full_response)
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                except Exception as e:
+                    st.error(f"⚠️ 답변 생성 중 오류: {e}")
+            else:
+                st.error("❌ 지식 베이스가 로드되지 않았습니다.")
