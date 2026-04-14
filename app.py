@@ -124,12 +124,12 @@ def load_or_build_vdb():
     index_path = "faiss_index_saved"
     working_key = API_KEYS[0]
 
-    # [기능 7] 404 에러 원천 차단 로직
-    # 정식 v1 주소와 text-embedding-004 모델을 강제 매칭합니다.
+    # [기능 7] 404 에러 완전 해결 로직
+    # Paid Tier 사용자를 위해 v1 정식 버전 주소와 text-embedding-004 모델을 강제로 고정합니다.
     embeddings = None
     last_raw_error = ""
 
-    # VIP 티어 전용 신형 이름 조합 (v1 기반)
+    # VIP 티어에서 거부할 수 없는 정식 이름 조합
     model_name_candidates = [
         "text-embedding-004",           # 1. 정식 이름
         "models/text-embedding-004",    # 2. 풀네임
@@ -139,13 +139,13 @@ def load_or_build_vdb():
 
     for m_name in model_name_candidates:
         try:
-            # [핵심] 유료 티어를 위해 v1beta가 아닌 정식 v1 경로를 찔러봅니다.
+            # [해결 핵심] v1beta가 아닌 정식 v1 경로를 강제로 지정하여 Paid Tier 권한을 활성화합니다.
             temp_emb = GoogleGenerativeAIEmbeddings(
                 model=m_name, 
                 google_api_key=working_key,
-                client_options={"api_version": "v1"} # [해결책] 정식 버전으로 강제 고정
+                client_options={"api_version": "v1"} 
             )
-            temp_emb.embed_query("test_probe") # 실제로 찔러봐서 되는지 확인
+            temp_emb.embed_query("test_probe") # 실제로 테스트
             embeddings = temp_emb
             break 
         except Exception as e:
@@ -155,14 +155,14 @@ def load_or_build_vdb():
     if not embeddings:
         return None, f"❌ 구글 지능형 서버 연결 실패.\n상세 원인: {last_raw_error}"
 
-    # [기능 8] 이미 분석된 데이터가 있다면 0초 만에 로딩! (기존 데이터 활용)
+    # [기능 8] 이미 분석된 데이터가 있다면 0초 만에 로딩! (기존 지식 데이터 활용)
     if os.path.exists(index_path):
         try:
             return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True), None
         except Exception:
             pass 
 
-    # [기능 4] 용어 순화: 지침서 데이터로 관리
+    # [기능 4] 용어 순화: '인증 지침서 데이터'로 관리
     pdf_files = ["guide.pdf", "manual2.pdf"]
     valid_files = [f for f in pdf_files if os.path.exists(f)]
     if not valid_files:
