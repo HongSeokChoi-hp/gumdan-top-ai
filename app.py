@@ -81,7 +81,7 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 지침서 분석 엔진 (에러 완전 차단)
+# 📚 지침서 분석 엔진 (404 & 과부하 원천 차단)
 # ==========================================
 @st.cache_resource
 def build_vector_db():
@@ -100,34 +100,63 @@ def build_vector_db():
     status_text = st.empty()
     current_page = 0
     
+    # 1단계: 텍스트 추출 (50% 진행)
     for file in valid_files:
         reader = PdfReader(file)
         for page in reader.pages:
             text = page.extract_text()
             if text: all_text += text
             current_page += 1
-            percent = int((current_page / total_pages) * 100)
-            progress_bar.progress(current_page / total_pages)
-            status_text.markdown(f"📡 **문서 분석 중: {percent}% 완료**")
+            percent = int((current_page / total_pages) * 50)
+            progress_bar.progress(percent / 100.0)
+            status_text.markdown(f"📡 **[1/2] 문서 분석 중: {percent}% 완료**")
             
-    status_text.markdown("🧠 **시스템 마무리 중... (약 10초)**")
+    status_text.markdown("🧠 **[2/2] 시스템 지식 구조화 중... (안전 모드 가동, 약 15초 소요)**")
     
     try:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
         chunks = text_splitter.split_text(all_text)
         
-        # 🔥 에러의 주범이었던 부품 이름을 구글 최신 규격으로 완전 고정
-        embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004", 
-            google_api_key=API_KEY
-        )
-        vector_db = FAISS.from_texts(chunks, embeddings)
+        # 🔥 404 에러 3중 방어막: 작동하는 모델 이름을 스스로 찾습니다.
+        embeddings = None
+        for model_name in ["models/embedding-001", "models/text-embedding-004", "embedding-001"]:
+            try:
+                temp_embeddings = GoogleGenerativeAIEmbeddings(model=model_name, google_api_key=API_KEY)
+                temp_embeddings.embed_query("test") # 찔러보기 테스트
+                embeddings = temp_embeddings
+                break # 성공하면 반복 중단
+            except:
+                continue # 실패하면 다음 모델 시도
+                
+        if embeddings is None:
+            st.error("❌ 구글 서버가 현재 계정의 모든 임베딩 모델을 거부하고 있습니다.")
+            return None
+
+        # 🔥 과부하(429) 방어막: 데이터를 100개씩 쪼개서 넣고 2초씩 휴식합니다.
+        batch_size = 100
+        vector_db = None
+        total_chunks = len(chunks)
         
+        for i in range(0, total_chunks, batch_size):
+            batch = chunks[i:i+batch_size]
+            if vector_db is None:
+                vector_db = FAISS.from_texts(batch, embeddings)
+            else:
+                vector_db.add_texts(batch)
+            
+            # 50% ~ 100% 진행률 계산
+            current_chunk_percent = 50 + int(((min(i + batch_size, total_chunks)) / total_chunks) * 50)
+            progress_bar.progress(current_chunk_percent / 100.0)
+            status_text.markdown(f"🧠 **[2/2] 지식 구조화 중: {current_chunk_percent}% 완료** (구글 과부하 방지 중...)")
+            
+            time.sleep(2) # 2초 휴식 (핵심 안전장치)
+
         progress_bar.empty()
         status_text.empty()
         return vector_db
+        
     except Exception as e:
-        st.error(f"❌ 문서 처리 중 오류 발생: {e}")
+        st.error(f"❌ 문서 처리 중 알 수 없는 오류 발생: {e}")
         return None
 
 vdb = build_vector_db()
@@ -179,9 +208,8 @@ with tab1:
                             res_box.markdown(full_res + "▌")
                         res_box.markdown(full_res)
                         st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
-                    # 🔥 과부하 에러 예측 방어막
                     except ResourceExhausted:
-                        st.warning("⚠️ 잠시 접속량이 많습니다. 시스템 보호를 위해 약 30초 뒤에 다시 질문해 주세요.")
+                        st.warning("⚠️ 잠시 접속량이 많습니다. 구글 서버 보호를 위해 약 30초 뒤에 다시 질문해 주세요.")
                     except Exception as e:
                         st.error(f"⚠️ 시스템 오류가 발생했습니다: {e}")
 
@@ -189,7 +217,6 @@ with tab1:
 with tab2:
     st.info("💡 감독관 훈련을 시작하려면 아래 버튼을 눌러주세요.")
     
-    # 🔥 자동 질문 생성 차단 (과부하의 핵심 원인 해결)
     if st.button("▶️ 새로운 감독관 질문 받기", use_container_width=True):
         st.session_state.current_q = "생성중"
         
@@ -211,9 +238,8 @@ with tab2:
                     q_box.markdown(full_q)
                     st.session_state.current_q = full_q
                     st.session_state.train_msgs.append({"role": "assistant", "content": full_q})
-                # 🔥 과부하 에러 예측 방어막
                 except ResourceExhausted:
-                    st.warning("⚠️ 잠시 접속량이 많습니다. 1분 뒤에 다시 버튼을 눌러주세요.")
+                    st.warning("⚠️ 잠시 접속량이 많습니다. 30초 뒤에 다시 버튼을 눌러주세요.")
                     st.session_state.current_q = None
 
     if train_prompt := st.chat_input("감독관의 질문에 답변하십시오...", key="train_input"):
