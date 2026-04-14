@@ -1,7 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
@@ -48,7 +48,7 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 RAG 엔진: PDF 인덱싱 (에러 수정 버전)
+# 📚 RAG 엔진: PDF 인덱싱 (최신 버전 호환)
 # ==========================================
 @st.cache_resource
 def build_vector_db():
@@ -104,7 +104,7 @@ with chat_container:
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
 
-# 질문 입력창 (에러 수정 포인트)
+# 질문 입력창
 if prompt := st.chat_input("지침서에 대해 궁금한 점을 물어보세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     
