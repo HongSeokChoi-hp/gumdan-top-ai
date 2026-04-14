@@ -40,7 +40,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🔑 2. API 키 및 답변 엔진 (글자만 쏙쏙 뽑는 로직 추가)
+# 🔑 2. API 키 및 답변 엔진 (글자만 쏙쏙 뽑는 로직 완벽 적용)
 # ============================================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 API_KEYS = [raw_keys] if isinstance(raw_keys, str) else list(raw_keys)
@@ -56,13 +56,16 @@ def generate_with_retry(prompt_text):
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt_text, stream=True)
             
-            # [수정된 핵심 부분] 택배 상자(JSON)를 버리고 알맹이(글자)만 꺼내서 줍니다.
-            for chunk in response:
-                try:
-                    yield chunk.text
-                except Exception:
-                    continue
-            return # 성공하면 여기서 함수 종료
+            # [핵심] JSON 포장지를 뜯고 순수 한글 텍스트만 추출하는 제너레이터
+            def text_extractor():
+                for chunk in response:
+                    try:
+                        if chunk.text:
+                            yield chunk.text
+                    except Exception:
+                        pass
+            return text_extractor()
+            
         except Exception:
             continue # 에러 나면 다음 키로 재시도
             
@@ -106,15 +109,19 @@ with tab1:
     for m in st.session_state.search_msgs:
         with chat_box1.chat_message(m["role"]): st.markdown(m["content"])
 
-    if query := st.chat_input("규정이나 지침에 대해 질문하십시오...", key="search_input"):
+    # 업데이트 확인용 텍스트 추가 (이 글자가 보이면 새 버전 적용 완료!)
+    if query := st.chat_input("규정이나 지침에 대해 질문하십시오... (최적화 완료)", key="search_input"):
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with chat_box1.chat_message("user"): st.markdown(query)
         with chat_box1.chat_message("assistant"):
-            docs = vdb.similarity_search(query, k=4)
-            context_data = "\n\n".join([d.page_content for d in docs])
-            stream_res = generate_with_retry(f"지침서 내용:\n{context_data}\n\n질문: {query}\n(한국어로 친절하게 답변하고 근거 포함)")
-            full_res = st.write_stream(stream_res)
-            st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
+            try:
+                docs = vdb.similarity_search(query, k=4)
+                context_data = "\n\n".join([d.page_content for d in docs])
+                stream_res = generate_with_retry(f"지침서 내용:\n{context_data}\n\n질문: {query}\n(한국어로 친절하게 답변하고 근거 포함)")
+                full_res = st.write_stream(stream_res)
+                st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
+            except Exception as e:
+                st.error("⚠️ 시스템 지연입니다. 잠시 후 시도해주세요.")
 
 with tab2:
     st.info("💡 현장 감독관의 질문에 답변하여 실전 능력을 테스트하십시오.")
@@ -125,20 +132,27 @@ with tab2:
     if st.button("▶️ 새로운 감독관 현장 질문 생성", use_container_width=True):
         st.session_state.current_q = "생성중"
         with chat_box2.chat_message("assistant"):
-            stream_q = generate_with_retry("병원 인증평가 감독관이 던질법한 짧은 현장 질문 하나 해줘.")
-            full_q = st.write_stream(stream_q)
-            st.session_state.current_q = full_q
-            st.session_state.train_msgs.append({"role": "assistant", "content": full_q})
+            try:
+                stream_q = generate_with_retry("병원 인증평가 감독관이 던질법한 짧은 현장 질문 하나 해줘.")
+                full_q = st.write_stream(stream_q)
+                st.session_state.current_q = full_q
+                st.session_state.train_msgs.append({"role": "assistant", "content": full_q})
+            except:
+                st.error("⚠️ 질문 생성 실패.")
 
-    if answer_input := st.chat_input("답변을 입력하십시오...", key="train_input"):
+    # 업데이트 확인용 텍스트 추가
+    if answer_input := st.chat_input("답변을 입력하십시오... (최적화 완료)", key="train_input"):
         if st.session_state.current_q and st.session_state.current_q != "생성중":
             st.session_state.train_msgs.append({"role": "user", "content": answer_input})
             with chat_box2.chat_message("user"): st.markdown(answer_input)
             with chat_box2.chat_message("assistant"):
-                docs = vdb.similarity_search(st.session_state.current_q, k=3)
-                ref_ctx = "\n\n".join([d.page_content for d in docs])
-                eval_stream = generate_with_retry(f"질문: '{st.session_state.current_q}'\n답변: '{answer_input}'\n지침서:\n{ref_ctx}\n\n채점하고 정답 알려줘.")
-                final_eval = st.write_stream(eval_stream)
-                st.session_state.train_msgs.append({"role": "assistant", "content": final_eval})
-                st.session_state.current_q = None 
+                try:
+                    docs = vdb.similarity_search(st.session_state.current_q, k=3)
+                    ref_ctx = "\n\n".join([d.page_content for d in docs])
+                    eval_stream = generate_with_retry(f"질문: '{st.session_state.current_q}'\n답변: '{answer_input}'\n지침서:\n{ref_ctx}\n\n채점하고 정답 알려줘.")
+                    final_eval = st.write_stream(eval_stream)
+                    st.session_state.train_msgs.append({"role": "assistant", "content": final_eval})
+                    st.session_state.current_q = None 
+                except:
+                    st.error("⚠️ 채점 엔진 오류.")
         else: st.warning("먼저 질문 생성 버튼을 눌러주십시오.")
