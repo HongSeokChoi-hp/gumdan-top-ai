@@ -6,84 +6,59 @@ import os
 import random
 
 # ============================================================
-# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI 및 모바일 반응형 설정
+# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI 및 강제 UI 압축
 # ============================================================
 SET_PASSWORD = "0366" 
 
-st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="collapsed")
 
-# [핵심] 스트림릿 잡다한 아이콘 완벽 제거 및 모바일 고급화 CSS
+# [핵심] 스트림릿 로고 완벽 박멸 및 모바일 최적화 고정 레이아웃
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
     
-    /* 🚫 스트림릿 기본 UI/아이콘 완벽 제거 (우측 상단 깃허브, 연필, 하단 배지 등) */
-    header {visibility: hidden !important;}
-    #MainMenu {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    .stDeployButton {display: none !important;}
-    .viewerBadge_container__1QSob {display: none !important;}
-    .viewerBadge_link__1S137 {display: none !important;}
-    [data-testid="stToolbar"] {visibility: hidden !important;}
+    /* 🚫 스트림릿 잔재물(로고, 계정, 메뉴) 강제 완전 삭제 */
+    #MainMenu, header, footer {visibility: hidden !important; display: none !important;}
+    .stDeployButton, .viewerBadge_container__1QSob, .viewerBadge_link__1S137 {display: none !important;}
+    [data-testid="stToolbar"], [data-testid="stDecoration"] {display: none !important;}
     
-    /* 상단 빈 공간 최소화 */
-    .block-container {padding-top: 2rem !important; padding-bottom: 2rem !important;}
+    /* 상단 빈 공간 완전 제거 */
+    .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
 
-    /* 🖥️ PC 버전 기본 디자인 */
+    /* 🖥️ PC & 모바일 공통 디자인 */
     .enterprise-header { 
         background: linear-gradient(135deg, #003366 0%, #005691 100%); 
-        color: white; padding: 45px 55px; border-radius: 20px; 
-        margin-bottom: 40px; box-shadow: 0 15px 50px rgba(0, 51, 145, 0.35); 
+        color: white; padding: 30px 40px; border-radius: 15px; 
+        margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0, 51, 145, 0.2); 
     }
     .badge { 
-        background: #8CC63F; color: #003366; padding: 10px 20px; 
-        border-radius: 8px; font-weight: bold; margin-bottom: 20px; 
-        display: inline-block; font-size: 1rem; 
+        background: #8CC63F; color: #003366; padding: 6px 14px; 
+        border-radius: 6px; font-weight: bold; margin-bottom: 10px; display: inline-block; font-size: 0.9rem; 
     }
-    .enterprise-header h1 { margin: 0; font-size: 3.2rem; font-weight: 900; color: white; letter-spacing: -2px; }
+    .enterprise-header h1 { margin: 0; font-size: 2.2rem; font-weight: 900; color: white; letter-spacing: -1px; }
     
+    /* 채팅창 입력 부분 강조 */
     [data-testid="stChatInput"] { 
-        border: 4px solid #005691 !important; border-radius: 20px !important; 
-        box-shadow: 0 15px 55px rgba(0, 86, 145, 0.3) !important; 
-        background-color: white !important; padding: 15px !important; 
+        border: 3px solid #005691 !important; border-radius: 15px !important; 
+        box-shadow: 0 10px 30px rgba(0, 86, 145, 0.2) !important; 
+        background-color: white !important; padding: 10px !important; 
     }
     
-    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
     .stTabs [data-baseweb="tab"] { 
-        height: 65px; background-color: #f1f5f9; border-radius: 15px 15px 0 0; 
-        padding: 0 40px; font-weight: 800; color: #64748b; font-size: 1.2rem; 
+        height: 50px; background-color: #f1f5f9; border-radius: 10px 10px 0 0; 
+        padding: 0 20px; font-weight: 800; color: #64748b; font-size: 1.1rem; 
     }
     .stTabs [aria-selected="true"] { background-color: #005691 !important; color: white !important; }
 
-    /* 📱 모바일 전용 반응형 디자인 (화면이 작아질 때 자동 적용) */
+    /* 📱 모바일 극단적 최적화 (한눈에 들어오게 고정) */
     @media (max-width: 768px) {
-        .enterprise-header { 
-            padding: 30px 20px !important; 
-            border-radius: 15px !important; 
-            margin-bottom: 25px !important;
-        }
-        .enterprise-header h1 { 
-            font-size: 2.2rem !important; 
-            line-height: 1.2 !important;
-            word-break: keep-all !important;
-        }
-        .badge { 
-            font-size: 0.85rem !important; 
-            padding: 8px 15px !important; 
-            margin-bottom: 15px !important;
-        }
-        /* 모바일 탭 디자인 최적화 */
-        .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-        .stTabs [data-baseweb="tab"] { 
-            padding: 0 15px !important; 
-            font-size: 1rem !important; 
-            height: 50px !important; 
-        }
-        /* 모바일 로그인 화면 여백 조절 */
-        [data-testid="stTextInput"] { margin-top: 15px !important; }
-        .block-container {padding-top: 1rem !important;}
+        .enterprise-header { padding: 20px !important; margin-bottom: 15px !important;}
+        .enterprise-header h1 { font-size: 1.8rem !important; line-height: 1.2 !important; word-break: keep-all !important;}
+        .badge { font-size: 0.8rem !important; padding: 5px 10px !important; margin-bottom: 10px !important;}
+        .stTabs [data-baseweb="tab"] { font-size: 1rem !important; padding: 0 10px !important;}
     }
 </style>
 """, unsafe_allow_html=True)
@@ -101,7 +76,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🔑 2. API 키 및 답변 엔진 (글자만 쏙쏙 뽑는 로직)
+# 🔑 2. API 키 및 답변 엔진 
 # ============================================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 API_KEYS = [raw_keys] if isinstance(raw_keys, str) else list(raw_keys)
@@ -123,9 +98,7 @@ def generate_with_retry(prompt_text):
                         if chunk.text: yield chunk.text
                     except Exception: pass
             return text_extractor()
-            
         except Exception: continue
-            
     raise Exception("모든 AI 엔진이 응답하지 않습니다.")
 
 # ============================================================
@@ -143,25 +116,29 @@ def load_vdb():
 
 st.markdown("<div class='enterprise-header'><div class='badge'>GUMDAN TOP HOSPITAL AI CORE</div><h1>🏅 인증조사 마스터 AI</h1></div>", unsafe_allow_html=True)
 
-with st.sidebar:
-    if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
-    st.markdown("---")
-    st.success("📡 **시스템 정상 가동 중**")
-
 vdb, error_msg = load_vdb()
 if error_msg: st.error(error_msg); st.stop()
 
 # ============================================================
-# 🗂️ 4. 통합 규정 검색 및 훈련
+# 🗂️ 4. 통합 규정 검색 및 훈련 (높이 고정 & 프롬프트 고도화)
 # ============================================================
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
+# [핵심] AI 뇌 수술: 동문서답 및 중복 반복 방지 시스템 프롬프트
+SYSTEM_PROMPT = """당신은 검단탑병원의 최고 등급 인증평가 전문 컨설턴트입니다.
+아래 제공된 [지침서 내용]만을 바탕으로 답변하되, 다음 규칙을 엄격히 지키세요:
+1. 문서의 내용을 기계적으로 복사/붙여넣기 하지 마세요.
+2. '할수있음', '조사목적' 등 동일한 목차나 내용이 반복될 경우, 하나로 깔끔하게 합쳐서 사람이 읽기 쉬운 자연스러운 문장으로 요약하세요.
+3. 전문적이고 정중한 한국어로 답변하며, 답변 끝에 반드시 핵심 근거를 부드럽게 요약하여 덧붙이세요.
+"""
+
 tab1, tab2 = st.tabs(["🔍 통합 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
 with tab1:
-    chat_box1 = st.container(height=550)
+    # [핵심] 한눈에 들어오도록 채팅창 높이를 350으로 대폭 축소 (내부에서 스크롤 됨)
+    chat_box1 = st.container(height=350)
     for m in st.session_state.search_msgs:
         with chat_box1.chat_message(m["role"]): st.markdown(m["content"])
 
@@ -172,15 +149,17 @@ with tab1:
             try:
                 docs = vdb.similarity_search(query, k=4)
                 context_data = "\n\n".join([d.page_content for d in docs])
-                stream_res = generate_with_retry(f"지침서 내용:\n{context_data}\n\n질문: {query}\n(한국어로 친절하게 답변하고 근거 포함)")
+                # 똑똑해진 프롬프트 적용
+                smart_prompt = f"{SYSTEM_PROMPT}\n\n[지침서 내용]\n{context_data}\n\n[사용자 질문]: {query}"
+                stream_res = generate_with_retry(smart_prompt)
                 full_res = st.write_stream(stream_res)
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
             except Exception as e:
                 st.error("⚠️ 시스템 지연입니다. 잠시 후 시도해주세요.")
 
 with tab2:
-    st.info("💡 현장 감독관의 질문에 답변하여 실전 능력을 테스트하십시오.")
-    chat_box2 = st.container(height=480)
+    # 여기도 높이를 350으로 축소
+    chat_box2 = st.container(height=350)
     for m in st.session_state.train_msgs:
         with chat_box2.chat_message(m["role"]): st.markdown(m["content"])
     
@@ -203,7 +182,8 @@ with tab2:
                 try:
                     docs = vdb.similarity_search(st.session_state.current_q, k=3)
                     ref_ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_stream = generate_with_retry(f"질문: '{st.session_state.current_q}'\n답변: '{answer_input}'\n지침서:\n{ref_ctx}\n\n채점하고 정답 알려줘.")
+                    eval_p = f"{SYSTEM_PROMPT}\n\n[지침서 내용]\n{ref_ctx}\n\n[상황]: 감독관이 '{st.session_state.current_q}'라고 질문했고, 직원이 '{answer_input}'라고 답변했습니다. 지침서를 바탕으로 친절하게 채점하고 정답을 알려주세요."
+                    eval_stream = generate_with_retry(eval_p)
                     final_eval = st.write_stream(eval_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": final_eval})
                     st.session_state.current_q = None 
