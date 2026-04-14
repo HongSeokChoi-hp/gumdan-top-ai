@@ -42,7 +42,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ==========================================
-# 🔑 2. 무적의 시크릿 키 파싱 & 로테이션 엔진
+# 🔑 2. 시크릿 키 파싱 & 로테이션 엔진
 # ==========================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 if isinstance(raw_keys, str):
@@ -55,7 +55,6 @@ if not API_KEYS:
     st.stop()
 
 def generate_with_retry(prompt_text):
-    """키 로테이션 + 2.5/1.5 자동 스위칭"""
     keys = list(API_KEYS)
     random.shuffle(keys)
     
@@ -76,11 +75,10 @@ def generate_with_retry(prompt_text):
         except Exception as e:
             last_error = e
             continue
-            
     raise Exception("현재 등록된 모든 API 키의 한도가 초과되었거나 응답이 없습니다.")
 
 # ==========================================
-# 📚 3. 지식 DB 영구 캐싱 (로딩 0초 기술)
+# 📚 3. 지식 DB 구축 (퍼센트 숫자 완벽 복구)
 # ==========================================
 @st.cache_resource
 def load_or_build_vdb():
@@ -97,29 +95,51 @@ def load_or_build_vdb():
     valid_files = [f for f in pdf_files if os.path.exists(f)]
     if not valid_files: return None
 
+    # 전체 페이지 수 계산 (퍼센트를 구하기 위해 필수)
+    total_pages = 0
+    for f in valid_files:
+        try: total_pages += len(PdfReader(f).pages)
+        except: pass
+        
+    if total_pages == 0: return None
+
     progress_bar = st.progress(0)
     status_text = st.empty()
     all_text = ""
+    current_page = 0
     
-    for idx, f in enumerate(valid_files):
+    # [복구됨] 1단계: 텍스트 추출 (1% ~ 40%)
+    for f in valid_files:
         try:
             reader = PdfReader(f)
             for page in reader.pages:
                 t = page.extract_text()
                 if t: all_text += t
+                
+                current_page += 1
+                percent = int((current_page / total_pages) * 40)
+                progress_bar.progress(percent / 100.0)
+                status_text.markdown(f"📡 **[1/2] 지침서 읽는 중: {percent}% 완료** ({current_page}/{total_pages}장)")
         except: continue
-        progress_bar.progress((idx + 1) / len(valid_files) * 0.4)
-        status_text.markdown("📡 **지침서 텍스트 추출 중...**")
             
     try:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
         chunks = text_splitter.split_text(all_text)
         
-        vector_db = FAISS.from_texts(chunks[:100], embeddings)
-        for i in range(100, len(chunks), 100):
-            vector_db.add_texts(chunks[i:i+100])
-            progress_bar.progress(0.4 + (i / len(chunks)) * 0.6)
-            status_text.markdown(f"🧠 **구조화 중 (과부하 방지 안전 모드)...**")
+        # [복구됨] 2단계: 데이터 압축 및 구조화 (41% ~ 100%)
+        vector_db = None
+        total_chunks = len(chunks)
+        
+        for i in range(0, total_chunks, 100):
+            batch = chunks[i:i+100]
+            if vector_db is None:
+                vector_db = FAISS.from_texts(batch, embeddings)
+            else:
+                vector_db.add_texts(batch)
+                
+            chunk_percent = 40 + int(((min(i + 100, total_chunks)) / total_chunks) * 60)
+            progress_bar.progress(chunk_percent / 100.0)
+            status_text.markdown(f"🧠 **[2/2] 지식 구조화 중: {chunk_percent}% 완료** (구글 과부하 방지 중...)")
             time.sleep(1.5)
             
         vector_db.save_local(index_path)
@@ -152,7 +172,7 @@ elif vdb is None:
     st.stop()
 
 # ==========================================
-# 🗂️ 4. 메인 탭 로직 (누락 기능 완전 복구)
+# 🗂️ 4. 메인 탭 로직 (모든 기능 포함)
 # ==========================================
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
@@ -181,7 +201,7 @@ with tab1:
             except Exception as e:
                 st.error("⚠️ 현재 시스템 응답이 지연되고 있습니다. 잠시 후 시도해 주세요.")
 
-# --- TAB 2: 감독관 훈련 (삭제됐던 채점 기능 완벽 복원) ---
+# --- TAB 2: 감독관 훈련 ---
 with tab2:
     st.info("💡 실전 대응 능력을 키우기 위해 감독관의 질문에 답변해 보세요.")
     
@@ -201,14 +221,12 @@ with tab2:
                 st.error("⚠️ 질문을 생성할 수 없습니다. 엔진 사용량이 초과되었을 수 있습니다.")
                 st.session_state.current_q = None
 
-    # 🔥 실수로 통째로 날려먹었던 바로 그 입력창/채점 기능!
     if train_prompt := st.chat_input("감독관의 질문에 답변하십시오...", key="train_input"):
         if st.session_state.current_q and st.session_state.current_q != "생성중":
             st.session_state.train_msgs.append({"role": "user", "content": train_prompt})
             with chat_box2.chat_message("user"): st.markdown(train_prompt)
             with chat_box2.chat_message("assistant"):
                 try:
-                    # 지침서 뒤져서 정확하게 채점하기
                     docs = vdb.similarity_search(st.session_state.current_q, k=3)
                     context = "\n\n".join([doc.page_content for doc in docs])
                     eval_prompt = f"질문: '{st.session_state.current_q}'\n사용자 답변: '{train_prompt}'\n[지침서 근거]\n{context}\n\n위 지침서를 바탕으로 답변이 맞는지 짧게 평가해주고 정답을 알려줘."
@@ -217,7 +235,7 @@ with tab2:
                     full_eval = st.write_stream(res_eval_stream)
                     
                     st.session_state.train_msgs.append({"role": "assistant", "content": full_eval})
-                    st.session_state.current_q = None # 답변했으니 초기화
+                    st.session_state.current_q = None 
                 except Exception as e:
                     st.error("⚠️ 평가를 생성할 수 없습니다. 잠시 후 다시 시도해 주세요.")
         else:
