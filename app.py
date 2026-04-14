@@ -4,25 +4,29 @@ from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
 import random
+import time
 
 # ============================================================
-# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI 및 강제 UI 압축
+# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI & 보안 강화
 # ============================================================
 SET_PASSWORD = "0366" 
 
 st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="collapsed")
 
-# [핵심] 스트림릿 로고 완벽 박멸 및 모바일 최적화 고정 레이아웃
+# [핵심] 스트림릿 로고, 프로필 배지, 툴바 완벽 박멸
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
     
-    /* 🚫 스트림릿 잔재물(로고, 계정, 메뉴) 강제 완전 삭제 */
+    /* 🚫 스트림릿 잔재물 강제 완전 삭제 (프로필 로고 파괴) */
     #MainMenu, header, footer {visibility: hidden !important; display: none !important;}
-    .stDeployButton, .viewerBadge_container__1QSob, .viewerBadge_link__1S137 {display: none !important;}
+    .stDeployButton {display: none !important;}
     [data-testid="stToolbar"], [data-testid="stDecoration"] {display: none !important;}
+    
+    /* 모바일 우측 하단 프로필/왕관 배지(iframe) 절대 노출 금지 */
+    iframe {display: none !important;}
     
     /* 상단 빈 공간 완전 제거 */
     .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
@@ -39,7 +43,6 @@ st.markdown("""
     }
     .enterprise-header h1 { margin: 0; font-size: 2.2rem; font-weight: 900; color: white; letter-spacing: -1px; }
     
-    /* 채팅창 입력 부분 강조 */
     [data-testid="stChatInput"] { 
         border: 3px solid #005691 !important; border-radius: 15px !important; 
         box-shadow: 0 10px 30px rgba(0, 86, 145, 0.2) !important; 
@@ -53,7 +56,7 @@ st.markdown("""
     }
     .stTabs [aria-selected="true"] { background-color: #005691 !important; color: white !important; }
 
-    /* 📱 모바일 극단적 최적화 (한눈에 들어오게 고정) */
+    /* 📱 모바일 극단적 최적화 */
     @media (max-width: 768px) {
         .enterprise-header { padding: 20px !important; margin-bottom: 15px !important;}
         .enterprise-header h1 { font-size: 1.8rem !important; line-height: 1.2 !important; word-break: keep-all !important;}
@@ -69,14 +72,15 @@ if not st.session_state.get("authenticated", False):
     with col2:
         if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_container_width=True)
         st.markdown("<h3 style='text-align:center; font-weight:800; color:#003366; margin-top:20px;'>인증 AI 마스터 접속</h3>", unsafe_allow_html=True)
-        pwd = st.text_input("", type="password", placeholder="보안 코드를 입력하세요 (ex. 0366)")
+        # [수정] 멍청한 비밀번호 힌트 삭제 완료
+        pwd = st.text_input("", type="password", placeholder="보안 코드를 입력하세요")
         if pwd == SET_PASSWORD: st.session_state.authenticated = True; st.rerun()
         else:
             if pwd: st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
 # ============================================================
-# 🔑 2. API 키 및 답변 엔진 
+# 🔑 2. 모바일 끊김 방지용 무적 답변 엔진
 # ============================================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 API_KEYS = [raw_keys] if isinstance(raw_keys, str) else list(raw_keys)
@@ -90,14 +94,18 @@ def generate_with_retry(prompt_text):
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt_text, stream=True)
+            
+            # [핵심] stream=False 로 변경하여 모바일 끊김 완벽 차단 (1초 만에 전체 수신)
+            response = model.generate_content(prompt_text, stream=False)
             
             def text_extractor():
-                for chunk in response:
-                    try:
-                        if chunk.text: yield chunk.text
-                    except Exception: pass
+                # 수신받은 텍스트를 단어 단위로 쪼개서 타다닥 타이핑 효과를 자체적으로 만들어냄
+                words = response.text.split(" ")
+                for word in words:
+                    yield word + " "
+                    time.sleep(0.01) # 부드러운 타이핑 속도
             return text_extractor()
+            
         except Exception: continue
     raise Exception("모든 AI 엔진이 응답하지 않습니다.")
 
@@ -120,24 +128,22 @@ vdb, error_msg = load_vdb()
 if error_msg: st.error(error_msg); st.stop()
 
 # ============================================================
-# 🗂️ 4. 통합 규정 검색 및 훈련 (높이 고정 & 프롬프트 고도화)
+# 🗂️ 4. 통합 규정 검색 및 훈련
 # ============================================================
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# [핵심] AI 뇌 수술: 동문서답 및 중복 반복 방지 시스템 프롬프트
 SYSTEM_PROMPT = """당신은 검단탑병원의 최고 등급 인증평가 전문 컨설턴트입니다.
 아래 제공된 [지침서 내용]만을 바탕으로 답변하되, 다음 규칙을 엄격히 지키세요:
 1. 문서의 내용을 기계적으로 복사/붙여넣기 하지 마세요.
-2. '할수있음', '조사목적' 등 동일한 목차나 내용이 반복될 경우, 하나로 깔끔하게 합쳐서 사람이 읽기 쉬운 자연스러운 문장으로 요약하세요.
+2. 동일한 목차나 내용이 반복될 경우, 하나로 깔끔하게 합쳐서 사람이 읽기 쉬운 자연스러운 문장으로 요약하세요.
 3. 전문적이고 정중한 한국어로 답변하며, 답변 끝에 반드시 핵심 근거를 부드럽게 요약하여 덧붙이세요.
 """
 
 tab1, tab2 = st.tabs(["🔍 통합 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
 with tab1:
-    # [핵심] 한눈에 들어오도록 채팅창 높이를 350으로 대폭 축소 (내부에서 스크롤 됨)
     chat_box1 = st.container(height=350)
     for m in st.session_state.search_msgs:
         with chat_box1.chat_message(m["role"]): st.markdown(m["content"])
@@ -149,7 +155,6 @@ with tab1:
             try:
                 docs = vdb.similarity_search(query, k=4)
                 context_data = "\n\n".join([d.page_content for d in docs])
-                # 똑똑해진 프롬프트 적용
                 smart_prompt = f"{SYSTEM_PROMPT}\n\n[지침서 내용]\n{context_data}\n\n[사용자 질문]: {query}"
                 stream_res = generate_with_retry(smart_prompt)
                 full_res = st.write_stream(stream_res)
@@ -158,7 +163,6 @@ with tab1:
                 st.error("⚠️ 시스템 지연입니다. 잠시 후 시도해주세요.")
 
 with tab2:
-    # 여기도 높이를 350으로 축소
     chat_box2 = st.container(height=350)
     for m in st.session_state.train_msgs:
         with chat_box2.chat_message(m["role"]): st.markdown(m["content"])
