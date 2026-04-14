@@ -3,26 +3,46 @@ import google.generativeai as genai
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
+import random
 
 # ============================================================
-# 🎨 1. 안전한 화면 설정 및 잔재물 제거
+# 🎨 1. 안전한 화면 설정 및 거머리 로고(배지) 완전 파괴
 # ============================================================
 SET_PASSWORD = "0366" 
 st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="collapsed")
 
-# [수정] PC 화면을 하얗게 날려버린 위험한 CSS 코드를 삭제하고, 메뉴와 로고만 정밀하게 숨깁니다.
+# [핵심] 스트림릿이 강제로 덮어씌우는 홍보 배지를 정규식(Wildcard)으로 찾아내어 흔적도 없이 파괴합니다.
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
     
-    /* 스트림릿 우측 상단 메뉴, 깃허브 아이콘, 연필 아이콘 삭제 */
-    #MainMenu, header, footer {visibility: hidden !important; display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
+    /* 🚫 1. 상단 메뉴, 툴바, 헤더, 푸터 완전 삭제 */
+    header, footer, #MainMenu, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
     
-    /* 모바일 우측 하단 프로필/왕관 배지(viewerBadge) 정확히 타겟팅하여 삭제 */
-    .viewerBadge_container__1QSob, .viewerBadge_link__1S137, #viewerBadge {display: none !important;}
+    /* 🔥 2. 모바일 하단 프로필/로고(거머리 배지) 극단적 파괴 */
+    /* 스트림릿 서버가 강제로 쏘는 모든 요소를 크기 0, 투명도 0, 화면 밖으로 추방 */
+    div[class*="viewerBadge"],
+    div[id*="viewerBadge"],
+    iframe[src*="streamlit"],
+    iframe[title*="streamlit"],
+    iframe[src*="badge"],
+    a[href*="streamlit"],
+    .stDeployButton {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        width: 0px !important;
+        height: 0px !important;
+        position: absolute !important;
+        z-index: -9999 !important;
+    }
     
     /* 기본 레이아웃 디자인 */
     .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
@@ -47,7 +67,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🔑 2. 모바일 무한 로딩 방지 엔진 (직관적 에러 표출)
+# 🔑 2. 모바일 무한 로딩 방지 엔진 
 # ============================================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 API_KEYS = [raw_keys] if isinstance(raw_keys, str) else list(raw_keys)
@@ -56,10 +76,8 @@ if not API_KEYS: st.error("🚨 API 키가 설정되지 않았습니다."); st.s
 
 def generate_answer(prompt_text):
     genai.configure(api_key=API_KEYS[0])
-    # [수정] 속도가 훨씬 빠르고 모바일 환경에서 뻗지 않는 1.5-flash 모델로 변경
     model = genai.GenerativeModel('gemini-1.5-flash')
     try:
-        # 무한 루프 삭제. 에러가 나면 숨기지 않고 즉시 화면에 이유를 보여줍니다.
         response = model.generate_content(prompt_text, stream=False)
         return response.text
     except Exception as e:
@@ -83,13 +101,20 @@ vdb, error_msg = load_vdb()
 if error_msg: st.error("🚨 지식 데이터베이스 연결 실패: " + error_msg); st.stop()
 
 # ============================================================
-# 🗂️ 4. 통합 규정 검색 및 훈련 (동문서답 방지 프롬프트 유지)
+# 🗂️ 4. 통합 규정 검색 및 훈련 (소설 쓰기/환각 원천 차단)
 # ============================================================
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-SYS_PROMPT = "당신은 검단탑병원의 인증평가 컨설턴트입니다. 아래 [지침서 내용]을 바탕으로 중복되는 내용을 하나로 묶어 명확하게 요약하여 답변하세요. 기계적으로 내용을 복사하지 마세요."
+# [핵심] AI가 절대 지어내지 못하도록 강력한 족쇄(규칙)를 채웠습니다.
+SYS_PROMPT = """[최고 보안 규칙: 상상 및 날조 절대 금지]
+당신은 검단탑병원의 인증평가 지침서 데이터베이스입니다.
+1. 오직 아래 [제공된 지침서 원문]의 내용만을 사용하여 답변하십시오.
+2. 질문에 대한 답이 [제공된 지침서 원문]에 없다면, 절대 지어내거나 외부 지식을 사용하지 말고 "해당 내용은 제공된 지침서에서 찾을 수 없습니다."라고만 명확히 답변하십시오.
+3. 지침서 내용을 당신의 마음대로 해석하거나 변형하지 마십시오. 원문의 팩트와 절차를 그대로 전달하되, 중복되는 내용은 하나로 묶어 번호 매기기 등으로 요약만 하십시오.
+4. 절대로 '❌' 같은 이모티콘 기호만 덜렁 출력하지 마십시오. 완전한 문장으로 설명하십시오.
+"""
 
 tab1, tab2 = st.tabs(["🔍 통합 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
@@ -103,10 +128,10 @@ with tab1:
         with chat_box1.chat_message("user"): st.markdown(query)
         
         with chat_box1.chat_message("assistant"):
-            with st.spinner("지침서 분석 및 답변 생성 중..."):
-                docs = vdb.similarity_search(query, k=3)
+            with st.spinner("지침서 원문을 스캔 중입니다..."):
+                docs = vdb.similarity_search(query, k=4)
                 ctx = "\n\n".join([d.page_content for d in docs])
-                ans = generate_answer(f"{SYS_PROMPT}\n\n[지침서 내용]\n{ctx}\n\n사용자 질문: {query}")
+                ans = generate_answer(f"{SYS_PROMPT}\n\n[제공된 지침서 원문]\n{ctx}\n\n[사용자 질문]: {query}")
                 st.markdown(ans)
                 st.session_state.search_msgs.append({"role": "assistant", "content": ans})
 
@@ -128,10 +153,10 @@ with tab2:
             st.session_state.train_msgs.append({"role": "user", "content": ans_in})
             with chat_box2.chat_message("user"): st.markdown(ans_in)
             with chat_box2.chat_message("assistant"):
-                with st.spinner("채점 중..."):
+                with st.spinner("지침서 기반으로 채점 중..."):
                     docs = vdb.similarity_search(st.session_state.current_q, k=3)
                     ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_ans = generate_answer(f"{SYS_PROMPT}\n\n[지침서 내용]\n{ctx}\n\n감독관 질문: '{st.session_state.current_q}'\n사용자 답변: '{ans_in}'\n이 답변이 맞는지 지침서에 기반해 채점해주세요.")
+                    eval_ans = generate_answer(f"{SYS_PROMPT}\n\n[제공된 지침서 원문]\n{ctx}\n\n[상황]: 감독관 질문 '{st.session_state.current_q}'에 대해 직원이 '{ans_in}'이라고 답변했습니다. 이 답변이 맞는지 제공된 원문에 기반해 채점하고 정답을 알려주세요.")
                     st.markdown(eval_ans)
                     st.session_state.train_msgs.append({"role": "assistant", "content": eval_ans})
                     st.session_state.current_q = None 
