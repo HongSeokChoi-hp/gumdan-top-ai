@@ -5,6 +5,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
+import time
+from google.api_core.exceptions import ResourceExhausted
 
 # ==========================================
 # 🔐 보안 및 초기 UI 설정
@@ -12,6 +14,7 @@ import os
 SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증 AI", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
 
+# 🔥 검색창 테두리 강조 및 깔끔한 UI 적용
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -30,6 +33,16 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] { height: 50px; font-size: 1.05rem; font-weight: 600; color: #555; }
     .stTabs [aria-selected="true"] { color: #005691 !important; border-bottom-color: #005691 !important; border-bottom-width: 3px !important; }
     .stChatMessage { border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px;}
+    
+    /* 검색창 파란색 테두리 적용 */
+    [data-testid="stChatInput"] {
+        border: 2px solid #005691 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        font-size: 1.05rem !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -57,7 +70,7 @@ with st.sidebar:
         st.image("검단탑병원-로고_고화질.png", use_container_width=True)
     st.markdown("---")
     st.markdown("<div style='background:#f4f6f9; padding:15px; border-radius:8px; border:1px solid #e1e4e8;'>", unsafe_allow_html=True)
-    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 최적화 가동 중<br>📚 **지식 DB:**<br>• 2024 통합 지침서<br>• 급성기병원 표준지침서 Ver 5.0", unsafe_allow_html=True)
+    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 정상 가동 중<br>📚 **지식 DB:**<br>• 2024 통합 지침서<br>• 급성기병원 표준지침서 Ver 5.0", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
     if st.button("🔄 시스템 메모리 정리", use_container_width=True):
@@ -68,20 +81,18 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 지식 구조화 엔진
+# 📚 지침서 분석 엔진 (에러 완전 차단)
 # ==========================================
 @st.cache_resource
 def build_vector_db():
     all_text = ""
     pdf_files = ["guide.pdf", "manual2.pdf"]
-    
     total_pages = 0
-    valid_files = []
-    for f in pdf_files:
-        if os.path.exists(f):
-            reader = PdfReader(f)
-            total_pages += len(reader.pages)
-            valid_files.append(f)
+    valid_files = [f for f in pdf_files if os.path.exists(f)]
+    
+    for f in valid_files:
+        reader = PdfReader(f)
+        total_pages += len(reader.pages)
             
     if total_pages == 0: return None
 
@@ -97,17 +108,17 @@ def build_vector_db():
             current_page += 1
             percent = int((current_page / total_pages) * 100)
             progress_bar.progress(current_page / total_pages)
-            status_text.markdown(f"📡 **지침서 분석 및 데이터 세팅 중: {percent}% 완료**")
+            status_text.markdown(f"📡 **문서 분석 중: {percent}% 완료**")
             
-    status_text.markdown("🧠 **시스템 준비 중... (최초 1회만 약 10초 소요)**")
+    status_text.markdown("🧠 **시스템 마무리 중... (약 10초)**")
     
     try:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
         chunks = text_splitter.split_text(all_text)
         
-        # 가장 안정적인 기본 임베딩 모델 사용
+        # 🔥 에러의 주범이었던 부품 이름을 구글 최신 규격으로 완전 고정
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001", 
+            model="models/text-embedding-004", 
             google_api_key=API_KEY
         )
         vector_db = FAISS.from_texts(chunks, embeddings)
@@ -116,7 +127,7 @@ def build_vector_db():
         status_text.empty()
         return vector_db
     except Exception as e:
-        st.error(f"❌ 데이터 구조화 중 오류: {e}")
+        st.error(f"❌ 문서 처리 중 오류 발생: {e}")
         return None
 
 vdb = build_vector_db()
@@ -153,62 +164,85 @@ with tab1:
             with st.chat_message("user"): st.markdown(prompt)
             with st.chat_message("assistant"):
                 if vdb is not None:
-                    docs = vdb.similarity_search(prompt, k=4)
-                    context = "\n\n".join([doc.page_content for doc in docs])
-                    
-                    final_prompt = f"너는 검단탑병원의 AI야. 아래 [지침서 내용]만을 근거로 한국어로 답해. 지침서에 없으면 모른다고 해.\n[지침서 내용]\n{context}\n질문: {prompt}"
-                    
-                    res_box = st.empty()
-                    full_res = ""
-                    model = genai.GenerativeModel('gemini-2.5-flash')
-                    res = model.generate_content(final_prompt, stream=True)
-                    for chunk in res:
-                        full_res += chunk.text
-                        res_box.markdown(full_res + "▌")
-                    res_box.markdown(full_res)
-                    st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
+                    try:
+                        docs = vdb.similarity_search(prompt, k=4)
+                        context = "\n\n".join([doc.page_content for doc in docs])
+                        
+                        final_prompt = f"너는 검단탑병원의 AI야. 아래 [지침서 내용]만을 근거로 한국어로 답해. 지침서에 없으면 모른다고 해.\n[지침서 내용]\n{context}\n질문: {prompt}"
+                        
+                        res_box = st.empty()
+                        full_res = ""
+                        model = genai.GenerativeModel('gemini-2.5-flash')
+                        res = model.generate_content(final_prompt, stream=True)
+                        for chunk in res:
+                            full_res += chunk.text
+                            res_box.markdown(full_res + "▌")
+                        res_box.markdown(full_res)
+                        st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
+                    # 🔥 과부하 에러 예측 방어막
+                    except ResourceExhausted:
+                        st.warning("⚠️ 잠시 접속량이 많습니다. 시스템 보호를 위해 약 30초 뒤에 다시 질문해 주세요.")
+                    except Exception as e:
+                        st.error(f"⚠️ 시스템 오류가 발생했습니다: {e}")
 
 # --- TAB 2: 감독관 훈련 ---
 with tab2:
+    st.info("💡 감독관 훈련을 시작하려면 아래 버튼을 눌러주세요.")
+    
+    # 🔥 자동 질문 생성 차단 (과부하의 핵심 원인 해결)
+    if st.button("▶️ 새로운 감독관 질문 받기", use_container_width=True):
+        st.session_state.current_q = "생성중"
+        
     chat_box2 = st.container(height=450)
     with chat_box2:
         for m in st.session_state.train_msgs:
             with st.chat_message(m["role"]): st.markdown(m["content"])
             
-        if st.session_state.current_q is None:
+        if st.session_state.current_q == "생성중":
             with st.chat_message("assistant"):
-                q_box = st.empty()
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                res_q = model.generate_content("병원 인증평가 현장에서 직원에게 물어볼 아주 짧고 핵심적인 질문 1개만 한국어로 해줘.", stream=True)
-                full_q = ""
-                for chunk in res_q:
-                    full_q += chunk.text
-                    q_box.markdown(full_q + "▌")
-                q_box.markdown(full_q)
-                st.session_state.current_q = full_q
-                st.session_state.train_msgs.append({"role": "assistant", "content": full_q})
+                try:
+                    q_box = st.empty()
+                    model = genai.GenerativeModel('gemini-2.5-flash')
+                    res_q = model.generate_content("병원 인증평가 현장에서 직원에게 물어볼 아주 짧고 핵심적인 질문 1개만 한국어로 해줘.", stream=True)
+                    full_q = ""
+                    for chunk in res_q:
+                        full_q += chunk.text
+                        q_box.markdown(full_q + "▌")
+                    q_box.markdown(full_q)
+                    st.session_state.current_q = full_q
+                    st.session_state.train_msgs.append({"role": "assistant", "content": full_q})
+                # 🔥 과부하 에러 예측 방어막
+                except ResourceExhausted:
+                    st.warning("⚠️ 잠시 접속량이 많습니다. 1분 뒤에 다시 버튼을 눌러주세요.")
+                    st.session_state.current_q = None
 
     if train_prompt := st.chat_input("감독관의 질문에 답변하십시오...", key="train_input"):
-        st.session_state.train_msgs.append({"role": "user", "content": train_prompt})
-        with chat_box2:
-            with st.chat_message("user"): st.markdown(train_prompt)
-            with st.chat_message("assistant"):
-                eval_box = st.empty()
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                
-                if vdb is not None:
-                    docs = vdb.similarity_search(st.session_state.current_q, k=3)
-                    context = "\n\n".join([doc.page_content for doc in docs])
-                    eval_prompt = f"질문: '{st.session_state.current_q}'\n사용자 답변: '{train_prompt}'\n[지침서 근거]\n{context}\n\n위 지침서를 바탕으로 답변을 평가해주고, 다음 질문 1개를 이어서 내줘. 한국어로 해."
-                else:
-                    eval_prompt = f"질문: '{st.session_state.current_q}'\n사용자 답변: '{train_prompt}'\n답변을 평가하고 다음 질문 1개만 해줘."
+        if st.session_state.current_q and st.session_state.current_q != "생성중":
+            st.session_state.train_msgs.append({"role": "user", "content": train_prompt})
+            with chat_box2:
+                with st.chat_message("user"): st.markdown(train_prompt)
+                with st.chat_message("assistant"):
+                    try:
+                        eval_box = st.empty()
+                        model = genai.GenerativeModel('gemini-2.5-flash')
+                        
+                        if vdb is not None:
+                            docs = vdb.similarity_search(st.session_state.current_q, k=3)
+                            context = "\n\n".join([doc.page_content for doc in docs])
+                            eval_prompt = f"질문: '{st.session_state.current_q}'\n사용자 답변: '{train_prompt}'\n[지침서 근거]\n{context}\n\n위 지침서를 바탕으로 답변을 평가해주고, 다음 질문 1개를 이어서 내줘. 한국어로 해."
+                        else:
+                            eval_prompt = f"질문: '{st.session_state.current_q}'\n사용자 답변: '{train_prompt}'\n답변을 평가하고 다음 질문 1개만 해줘."
 
-                res_eval = model.generate_content(eval_prompt, stream=True)
-                full_eval = ""
-                for chunk in res_eval:
-                    full_eval += chunk.text
-                    eval_box.markdown(full_eval + "▌")
-                eval_box.markdown(full_eval)
-                
-                st.session_state.train_msgs.append({"role": "assistant", "content": full_eval})
-                st.session_state.current_q = "다음 질문을 해주세요."
+                        res_eval = model.generate_content(eval_prompt, stream=True)
+                        full_eval = ""
+                        for chunk in res_eval:
+                            full_eval += chunk.text
+                            eval_box.markdown(full_eval + "▌")
+                        eval_box.markdown(full_eval)
+                        
+                        st.session_state.train_msgs.append({"role": "assistant", "content": full_eval})
+                        st.session_state.current_q = None
+                    except ResourceExhausted:
+                        st.warning("⚠️ 잠시 접속량이 많습니다. 약 30초 뒤에 다시 시도해 주세요.")
+        else:
+            st.warning("먼저 위쪽의 '▶️ 새로운 감독관 질문 받기' 버튼을 눌러 질문을 받아주세요.")
