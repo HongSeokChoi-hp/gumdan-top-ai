@@ -57,7 +57,7 @@ with st.sidebar:
         st.image("검단탑병원-로고_고화질.png", use_container_width=True)
     st.markdown("---")
     st.markdown("<div style='background:#f4f6f9; padding:15px; border-radius:8px; border:1px solid #e1e4e8;'>", unsafe_allow_html=True)
-    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 최적화 (RAG 엔진)<br>📚 **지식 DB:**<br>• 2024 통합 지침서<br>• 급성기병원 표준지침서 Ver 5.0", unsafe_allow_html=True)
+    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 최적화 가동 중<br>📚 **지식 DB:**<br>• 2024 통합 지침서<br>• 급성기병원 표준지침서 Ver 5.0", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
     if st.button("🔄 시스템 메모리 정리", use_container_width=True):
@@ -68,7 +68,7 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 초고속 RAG 엔진 (에러 완전 박멸 버전)
+# 📚 지식 구조화 엔진
 # ==========================================
 @st.cache_resource
 def build_vector_db():
@@ -97,17 +97,17 @@ def build_vector_db():
             current_page += 1
             percent = int((current_page / total_pages) * 100)
             progress_bar.progress(current_page / total_pages)
-            status_text.markdown(f"📡 **지침서 분석 및 데이터 압축 중: {percent}% 완료**")
+            status_text.markdown(f"📡 **지침서 분석 및 데이터 세팅 중: {percent}% 완료**")
             
-    status_text.markdown("🧠 **엔진 세팅 중... (약 10초)**")
+    status_text.markdown("🧠 **시스템 준비 중... (최초 1회만 약 10초 소요)**")
     
     try:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
         chunks = text_splitter.split_text(all_text)
         
-        # [수정 1] 확실한 최신 임베딩 모델 이름으로 변경
+        # 가장 안정적인 기본 임베딩 모델 사용
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001", 
+            model="models/embedding-001", 
             google_api_key=API_KEY
         )
         vector_db = FAISS.from_texts(chunks, embeddings)
@@ -131,7 +131,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 상태 저장소
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
@@ -139,7 +138,7 @@ if "current_q" not in st.session_state: st.session_state.current_q = None
 # ==========================================
 # 🗂️ 탭 메뉴 
 # ==========================================
-tab1, tab2 = st.tabs(["🔍 초고속 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
+tab1, tab2 = st.tabs(["🔍 통합 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
 # --- TAB 1: 규정 검색 ---
 with tab1:
@@ -161,7 +160,6 @@ with tab1:
                     
                     res_box = st.empty()
                     full_res = ""
-                    # [수정 2] 원래 잘 되던 2.5 최신 모델로 원상복구!
                     model = genai.GenerativeModel('gemini-2.5-flash')
                     res = model.generate_content(final_prompt, stream=True)
                     for chunk in res:
@@ -180,7 +178,6 @@ with tab2:
         if st.session_state.current_q is None:
             with st.chat_message("assistant"):
                 q_box = st.empty()
-                # [수정 3] 원래 잘 되던 2.5 최신 모델로 원상복구!
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 res_q = model.generate_content("병원 인증평가 현장에서 직원에게 물어볼 아주 짧고 핵심적인 질문 1개만 한국어로 해줘.", stream=True)
                 full_q = ""
@@ -197,7 +194,6 @@ with tab2:
             with st.chat_message("user"): st.markdown(train_prompt)
             with st.chat_message("assistant"):
                 eval_box = st.empty()
-                # [수정 4] 원래 잘 되던 2.5 최신 모델로 원상복구!
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 if vdb is not None:
