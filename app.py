@@ -7,12 +7,12 @@ import random
 import time
 
 # ============================================================
-# 🔑 [해결] 기획자님이 설정한 Streamlit Secrets 금고와 직접 연결
+# 🔑 [유지] 완벽하게 연결된 Secrets 시스템 (건드릴 필요 없음)
 # ============================================================
 try:
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
 except Exception:
-    st.error("🚨 Streamlit Secrets에서 API 키를 찾을 수 없습니다. App Settings를 확인해주세요.")
+    st.error("🚨 Streamlit Secrets에서 API 키를 찾을 수 없습니다.")
     st.stop()
 
 SET_PASSWORD = "0366" 
@@ -20,7 +20,7 @@ SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증 지능형 지식화", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
 
 # ============================================================
-# 🎨 15가지 요구사항 UI 및 로고 완벽 차단
+# 🎨 15가지 UI 및 로고 완벽 차단
 # ============================================================
 st.markdown("""
 <style>
@@ -52,45 +52,40 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 엔진 로드 (004 -> 001 폴백 시스템)
+# 🧠 [해결 핵심] 004 폐기 -> 100% 안정적인 001 단일 모델로 강제 고정
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
         return None, "faiss_index_saved 폴더가 없습니다."
+    
     current_key = random.choice(API_KEYS)
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=current_key)
+        # 🚨 404 에러의 주범이었던 text-embedding-004를 삭제하고 embedding-001로 픽스
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=current_key)
         vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
         return vdb, None
-    except Exception as e1:
-        try:
-            embeddings_old = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=current_key)
-            vdb = FAISS.load_local("faiss_index_saved", embeddings_old, allow_dangerous_deserialization=True)
-            return vdb, "구형 인덱스로 로드되었습니다."
-        except Exception as e2:
-            return None, f"API 키 오류 또는 DB 손상: {e2}"
+    except Exception as e:
+        return None, f"DB 로드 실패: {e}"
 
 vdb, db_status_msg = load_intelligent_db()
 
 if not vdb:
     st.error(f"🚨 지식화 엔진 로딩 실패: {db_status_msg}")
-    if "API key not valid" in str(db_status_msg):
-        st.warning("⚠️ 구글 API 키가 만료되었거나 틀렸습니다. 구글 AI Studio에서 새 키를 발급받아 세팅해주세요.")
     st.stop()
 
 def get_intelligent_response(prompt_text):
     time.sleep(1.6)
     genai.configure(api_key=random.choice(API_KEYS))
     try:
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         return model.generate_content(prompt_text, stream=True)
     except:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-pro')
         return model.generate_content(prompt_text, stream=True)
 
 # ============================================================
-# 🗂️ 메인 화면
+# 🗂️ 메인 시스템 (검색 및 훈련)
 # ============================================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
@@ -127,11 +122,7 @@ with tab1:
                 full_ans = st.write_stream(res_stream)
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
             except Exception as e:
-                error_msg = str(e)
-                if "API key not valid" in error_msg:
-                    st.error("🚨 구글 API 키가 무효합니다. 앱 설정(Secrets)을 확인해주세요.")
-                else:
-                    st.error(f"🚨 검색 엔진 오류: {error_msg}")
+                st.error(f"🚨 검색 엔진 오류: {e}")
 
 with tab2:
     chat_box2 = st.container(height=350)
@@ -145,8 +136,7 @@ with tab2:
                 st.session_state.current_q = st.write_stream(q_stream)
                 st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
             except Exception as e:
-                if "API key not valid" in str(e): st.error("🚨 구글 API 키 오류 (Secrets 확인 필요)")
-                else: st.error(f"🚨 질문 생성 오류: {e}")
+                st.error(f"🚨 질문 생성 오류: {e}")
             
     if ans_input := st.chat_input("감독관 질문에 답변하십시오...", key="q_train"):
         if st.session_state.current_q:
@@ -162,5 +152,4 @@ with tab2:
                     st.session_state.train_msgs.append({"role": "assistant", "content": eval_ans})
                     st.session_state.current_q = None
                 except Exception as e:
-                    if "API key not valid" in str(e): st.error("🚨 구글 API 키 오류 (Secrets 확인 필요)")
-                    else: st.error(f"🚨 채점 오류: {e}")
+                    st.error(f"🚨 채점 오류: {e}")
