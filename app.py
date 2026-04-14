@@ -7,15 +7,15 @@ import random
 import time
 
 # ============================================================
-# 🔑 [필독] 기획자님 실제 API 키를 반드시 아래에 넣으십시오!
+# 🔑 [복구] 기획자님 API 키 직접 삽입 완료
 # ============================================================
-API_KEYS = ["AIzaSyDYuAhAW3BAQvf4L6voyUdhk2m7X0e1p2U"] # <--- "여기에_API_키_입력" 말고 진짜 키를 넣으세요!
+API_KEYS = ["AIzaSyDyUAhAW3BAQvf4L6voyUdhk2m7X0e1p2U"] 
 SET_PASSWORD = "0366" 
 
 st.set_page_config(page_title="검단탑병원 인증 지능형 지식화", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
 
 # ============================================================
-# 🎨 15가지 요구사항 UI 및 로고 차단 적용
+# 🎨 [디자인] 로고(왕관) 물리적 박멸 및 파란색 테두리
 # ============================================================
 st.markdown("""
 <style>
@@ -23,11 +23,11 @@ st.markdown("""
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
     
-    /* 우측 하단 거머리 로고 완벽 차단 */
-    .viewerBadge_container__1QSob, #viewerBadge, .stDeployButton { display: none !important; }
+    /* 🚫 우측 하단 거머리 로고 완벽 차단 */
+    .viewerBadge_container__1QSob, #viewerBadge, div[data-testid="stStatusWidget"], .stDeployButton { display: none !important; visibility: hidden !important; }
     footer { visibility: hidden; }
 
-    /* 파란색 4px 테두리 */
+    /* 🔍 검색창 진한 파란색 4px 테두리 */
     [data-testid="stChatInput"] { 
         border: 4px solid #005691 !important; 
         border-radius: 15px !important; 
@@ -49,13 +49,14 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 검색 엔진 로딩
+# 🧠 [원인 규명/복구] 기획자님의 최신 모델(2.5)로 원상 복구
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): return None
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=random.choice(API_KEYS))
+        # 🚨 [복구] 단종된 모델 폐기 -> 기획자님이 원래 쓰시던 최신 임베딩 복구
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=random.choice(API_KEYS))
         return FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
     except Exception as e:
         return None
@@ -63,23 +64,24 @@ def load_intelligent_db():
 vdb = load_intelligent_db()
 
 def get_intelligent_response(prompt_text):
-    time.sleep(1.6) # 1.6초 안전 휴식
+    time.sleep(1.6)
     genai.configure(api_key=random.choice(API_KEYS))
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # 🚨 [복구] 단종된 1.5 폐기 -> 기획자님의 강력한 2.5-flash 모델로 복구!
+        model = genai.GenerativeModel('gemini-2.5-flash')
         return model.generate_content(prompt_text, stream=True)
-    except:
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        return model.generate_content(prompt_text, stream=True)
+    except Exception as e:
+        st.error(f"엔진 오류: {e}")
+        return None
 
 # ============================================================
-# 🗂️ 메인 시스템 (검색 / 훈련 탭 분리 적용)
+# 🗂️ 메인 시스템
 # ============================================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
     st.markdown("### 📡 시스템 상태")
     if vdb: st.success("인증 지침서 데이터 동기화 완료 (100%)")
-    st.caption("v1.5.0-Stable | 0초 캐싱 활성화")
+    st.caption("v2.5.0-Stable | 0초 캐싱 활성화")
 
 st.markdown("<div class='enterprise-header'><h1>🏅 검단탑병원 인증 지능형 지식화</h1></div>", unsafe_allow_html=True)
 
@@ -100,36 +102,29 @@ with tab1:
         with chat_box.chat_message("user"): st.markdown(query)
         
         with chat_box.chat_message("assistant"):
-            try:
-                # 에러 방어막: 여기서 API 키 오류가 나면 빨간 에러 대신 원인을 한국어로 출력합니다.
-                docs = vdb.similarity_search(query, k=4)
-                ctx = "\n\n".join([f"[근거]: {d.page_content}" for d in docs])
-                
-                res_stream = get_intelligent_response(f"{SYS_RULE}\n\n원문:\n{ctx}\n\n질문: {query}")
+            docs = vdb.similarity_search(query, k=4)
+            ctx = "\n\n".join([f"[근거]: {d.page_content}" for d in docs])
+            
+            res_stream = get_intelligent_response(f"{SYS_RULE}\n\n원문:\n{ctx}\n\n질문: {query}")
+            if res_stream:
                 full_ans = st.write_stream(res_stream)
                 st.session_state.msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e:
-                st.error(f"🚨 구글 검색 서버 통신 오류: {str(e)}")
-                st.warning("코드 13번째 줄에 실제 API 키가 정확하게 입력되었는지 확인해주세요.")
 
 with tab2:
     if st.button("▶️ 감독관 현장 질문 생성", use_container_width=True):
         with st.chat_message("assistant"):
-            try:
-                q_stream = get_intelligent_response("병원 인증평가 감독관의 짧고 날카로운 질문 하나 생성.")
+            q_stream = get_intelligent_response("병원 인증평가 감독관의 짧고 날카로운 질문 하나 생성.")
+            if q_stream:
                 st.session_state.current_q = st.write_stream(q_stream)
-            except Exception as e:
-                st.error(f"🚨 질문 생성 오류: {str(e)}")
             
     if ans_input := st.chat_input("감독관 질문에 답변하십시오..."):
         if st.session_state.current_q:
             with st.chat_message("user"): st.markdown(ans_input)
             with st.chat_message("assistant"):
-                try:
-                    docs = vdb.similarity_search(st.session_state.current_q, k=3)
-                    ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_p = f"{SYS_RULE}\n\n질문: {st.session_state.current_q}\n답변: {ans_input}\n원문:\n{ctx}\n채점해줘."
-                    st.write_stream(get_intelligent_response(eval_p))
+                docs = vdb.similarity_search(st.session_state.current_q, k=3)
+                ctx = "\n\n".join([d.page_content for d in docs])
+                eval_p = f"{SYS_RULE}\n\n질문: {st.session_state.current_q}\n답변: {ans_input}\n원문:\n{ctx}\n채점해줘."
+                res_stream = get_intelligent_response(eval_p)
+                if res_stream:
+                    st.write_stream(res_stream)
                     st.session_state.current_q = None
-                except Exception as e:
-                    st.error(f"🚨 채점 오류: {str(e)}")
