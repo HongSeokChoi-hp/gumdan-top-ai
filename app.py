@@ -69,9 +69,12 @@ if not st.session_state.get("authenticated", False):
     st.write("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
-        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_container_width=True)
+        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_column_width=True)
         st.markdown("<h3 style='text-align:center; font-weight:800; color:#003366; margin-top:20px;'>인증 AI 마스터 접속</h3>", unsafe_allow_html=True)
-        pwd = st.text_input("", type="password", placeholder="보안 코드를 입력하세요")
+        
+        # 🚨 [핵심 수정] 빈칸("") 에러 폭탄 우회 -> 투명 망토(collapsed) 적용 완료!
+        pwd = st.text_input("보안코드", type="password", placeholder="보안 코드를 입력하세요", label_visibility="collapsed")
+        
         if pwd == SET_PASSWORD: st.session_state.authenticated = True; st.rerun()
         else:
             if pwd: st.error("❌ 보안 코드가 일치하지 않습니다.")
@@ -92,7 +95,7 @@ def generate_with_retry(prompt_text):
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel('gemini-2.5-flash')
-            # [핵심] stream=False로 설정하여 모바일 통신 끊김 원천 차단
+            # stream=False로 설정하여 모바일 통신 끊김 원천 차단
             response = model.generate_content(prompt_text, stream=False)
             return response.text
         except Exception: continue
@@ -142,14 +145,12 @@ with tab1:
         with chat_box1.chat_message("user"): st.markdown(query)
         
         with chat_box1.chat_message("assistant"):
-            # [핵심] 타이핑 효과를 빼고, '분석 중' 스피너를 돌린 뒤 정답을 한 번에 출력
             with st.spinner("지침서를 분석 중입니다. 잠시만 기다려주세요..."):
                 try:
                     docs = vdb.similarity_search(query, k=4)
                     context_data = "\n\n".join([d.page_content for d in docs])
                     smart_prompt = f"{SYSTEM_PROMPT}\n\n[지침서 내용]\n{context_data}\n\n[사용자 질문]: {query}"
                     
-                    # 통짜 텍스트 즉시 수신
                     full_res = generate_with_retry(smart_prompt)
                     st.markdown(full_res)
                     st.session_state.search_msgs.append({"role": "assistant", "content": full_res})
