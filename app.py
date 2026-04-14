@@ -33,7 +33,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 인증 로직
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -51,7 +50,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ==========================================
-# 🗂️ 왼쪽 사이드바 (부활!)
+# 🗂️ 왼쪽 사이드바
 # ==========================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"):
@@ -69,7 +68,7 @@ API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 # ==========================================
-# 📚 초고속 RAG 엔진 가동 (구글 에러 해결 버전)
+# 📚 초고속 RAG 엔진 (에러 완전 박멸 버전)
 # ==========================================
 @st.cache_resource
 def build_vector_db():
@@ -106,8 +105,11 @@ def build_vector_db():
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=100)
         chunks = text_splitter.split_text(all_text)
         
-        # [수정됨] 구글의 최신 임베딩 모델 이름으로 변경 (에러 해결 핵심)
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=API_KEY)
+        # [수정 1] 확실한 최신 임베딩 모델 이름으로 변경
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001", 
+            google_api_key=API_KEY
+        )
         vector_db = FAISS.from_texts(chunks, embeddings)
         
         progress_bar.empty()
@@ -135,7 +137,7 @@ if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
 # ==========================================
-# 🗂️ 탭 메뉴 (부활!)
+# 🗂️ 탭 메뉴 
 # ==========================================
 tab1, tab2 = st.tabs(["🔍 초고속 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
@@ -159,7 +161,8 @@ with tab1:
                     
                     res_box = st.empty()
                     full_res = ""
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    # [수정 2] 원래 잘 되던 2.5 최신 모델로 원상복구!
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     res = model.generate_content(final_prompt, stream=True)
                     for chunk in res:
                         full_res += chunk.text
@@ -177,7 +180,8 @@ with tab2:
         if st.session_state.current_q is None:
             with st.chat_message("assistant"):
                 q_box = st.empty()
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # [수정 3] 원래 잘 되던 2.5 최신 모델로 원상복구!
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 res_q = model.generate_content("병원 인증평가 현장에서 직원에게 물어볼 아주 짧고 핵심적인 질문 1개만 한국어로 해줘.", stream=True)
                 full_q = ""
                 for chunk in res_q:
@@ -193,9 +197,9 @@ with tab2:
             with st.chat_message("user"): st.markdown(train_prompt)
             with st.chat_message("assistant"):
                 eval_box = st.empty()
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # [수정 4] 원래 잘 되던 2.5 최신 모델로 원상복구!
+                model = genai.GenerativeModel('gemini-2.5-flash')
                 
-                # RAG 엔진으로 정확하게 채점!
                 if vdb is not None:
                     docs = vdb.similarity_search(st.session_state.current_q, k=3)
                     context = "\n\n".join([doc.page_content for doc in docs])
@@ -211,5 +215,4 @@ with tab2:
                 eval_box.markdown(full_eval)
                 
                 st.session_state.train_msgs.append({"role": "assistant", "content": full_eval})
-                # 임시로 다음 질문을 세션에 통째로 저장 (로직 단순화)
                 st.session_state.current_q = "다음 질문을 해주세요."
