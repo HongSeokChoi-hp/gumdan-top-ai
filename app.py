@@ -57,14 +57,14 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 [해결 핵심] 데이터베이스 호환성 원복 및 엔진 설정
+# 🧠 [해결 핵심] 구글 공식 임베딩 모델명으로 정확히 수정 (오타 제거)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): return None
     try:
-        # 🚨 [수정] 004 사용 시 충돌 에러 발생 -> 기존 DB와 호환되는 001 모델로 원복
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=random.choice(API_KEYS))
+        # 🚨 [수정 완료] models/gemini-embedding-001 -> models/embedding-001 로 정정
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=random.choice(API_KEYS))
         return FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
     except Exception as e:
         st.error(f"지식화 엔진 로딩 실패: {e}")
