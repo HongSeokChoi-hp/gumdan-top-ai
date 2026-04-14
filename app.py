@@ -6,26 +6,23 @@ import os
 import random
 
 # ============================================================
-# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI & 끈질긴 로고 강제 삭제
+# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI & 안전한 로고 삭제
 # ============================================================
 SET_PASSWORD = "0366" 
 
 st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="collapsed")
 
-# [핵심] 스트림릿 링크가 달린 모든 요소를 정규식으로 추적하여 강제 증발
+# [핵심] 화면 백지화 에러를 일으킨 폭탄 코드를 빼고 안전하게 잡다한 UI만 지웁니다.
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
     
-    /* 🚫 스트림릿 툴바, 헤더, 푸터 기본 삭제 */
+    /* 🚫 스트림릿 툴바, 헤더, 푸터 안전하게 삭제 */
     #MainMenu, header, footer {visibility: hidden !important; display: none !important;}
     [data-testid="stToolbar"], [data-testid="stDecoration"] {display: none !important;}
-    
-    /* 🔥 [초강력 로고 박멸] streamlit.io를 포함한 모든 링크/배지 절대 노출 금지 */
     a[href*="streamlit.io"] {display: none !important;}
-    div[data-testid="stAppViewContainer"] > div:last-child {display: none !important;}
     iframe {display: none !important;}
     
     .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important;}
@@ -69,12 +66,10 @@ if not st.session_state.get("authenticated", False):
     st.write("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
-        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_column_width=True)
+        # [수정] 에러를 일으킨 옛날 명령어(use_column_width)를 최신(use_container_width)으로 바꿨습니다!
+        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_container_width=True)
         st.markdown("<h3 style='text-align:center; font-weight:800; color:#003366; margin-top:20px;'>인증 AI 마스터 접속</h3>", unsafe_allow_html=True)
-        
-        # 🚨 [핵심 수정] 빈칸("") 에러 폭탄 우회 -> 투명 망토(collapsed) 적용 완료!
         pwd = st.text_input("보안코드", type="password", placeholder="보안 코드를 입력하세요", label_visibility="collapsed")
-        
         if pwd == SET_PASSWORD: st.session_state.authenticated = True; st.rerun()
         else:
             if pwd: st.error("❌ 보안 코드가 일치하지 않습니다.")
