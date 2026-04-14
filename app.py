@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import time
 import os
+import streamlit.components.v1 as components
 from google.api_core.exceptions import ResourceExhausted
 
 # ==========================================
@@ -12,6 +13,7 @@ SET_PASSWORD = "0366"
 
 st.set_page_config(page_title="검단탑병원 인증 AI", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
 
+# CSS 업데이트: 채팅창 디자인 개선
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -34,8 +36,9 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: white; padding: 10px 20px 0px 20px; border-radius: 10px 10px 0 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stTabs [data-baseweb="tab"] { height: 50px; font-size: 1.05rem; font-weight: 600; color: #555; }
     .stTabs [aria-selected="true"] { color: #005691 !important; border-bottom-color: #005691 !important; border-bottom-width: 3px !important; }
-    .stChatMessage { background-color: white; border: 1px solid #e1e4e8; border-radius: 10px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 15px;}
-    [data-testid="stChatMessage"]:nth-child(even) { background-color: #f8fafc; border-left: 4px solid #005691; } 
+    .stChatMessage { border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px;}
+    [data-testid="stChatMessage"]:nth-child(even) { background-color: #f0f7ff; border: 1px solid #cce0ff; }
+    [data-testid="stChatMessage"]:nth-child(odd) { background-color: #ffffff; border: 1px solid #e1e4e8; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,7 +65,7 @@ with st.sidebar:
         st.image("검단탑병원-로고_고화질.png", use_container_width=True)
     st.markdown("---")
     st.markdown("<div style='background:#f4f6f9; padding:15px; border-radius:8px; border:1px solid #e1e4e8;'>", unsafe_allow_html=True)
-    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 최적화<br>📚 **지식 DB:** 2024 통합 지침서", unsafe_allow_html=True)
+    st.markdown("🔒 **접속 등급:** 관리자 (1급)<br>📡 **서버 상태:** 최적화<br>📚 **지식 DB:**<br>• 2024 통합 지침서<br>• 급성기병원 인증조사 표준지침서Ver. 5.0", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("---")
     if st.button("🔄 시스템 메모리 정리", use_container_width=True):
@@ -86,9 +89,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# [핵심 변경 사항] API 키를 금고(Secrets)에서 가져옵니다.
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
 model = genai.GenerativeModel(
     model_name='gemini-2.5-flash',
     system_instruction="너는 검단탑병원의 '인증조사 마스터 AI'야. 모든 답변과 질문은 반드시 100% 한국어로만 자연스럽게 작성해. 영어를 쓰지 마."
@@ -112,49 +113,135 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-def fast_stream(prompt_text, mode):
-    if mode == "search": yield "✅ **[시스템] 지침서 DB를 스캔 중입니다...**\n\n"
-    elif mode == "eval": yield "🕵️‍♂️ **[답변 분석] 제출하신 내용을 규정과 대조합니다...**\n\n"
-    elif mode == "question": yield "🕵️‍♂️ **[신규 질문] 실전 모의고사를 생성 중입니다...**\n\n"
-    try:
-        response = model.generate_content([pdf_files[0], pdf_files[1], prompt_text], stream=True)
-        for chunk in response:
-            if chunk.text: yield chunk.text
-    except ResourceExhausted:
-        yield "\n\n⚠️ **[시스템 과부하 알림]**\n현재 접속량이 많아 일시적으로 연결이 제한되었습니다. 약 1분 뒤에 다시 시도해 주십시오."
-    except Exception as e:
-        yield f"\n\n⚠️ **[시스템 오류]** ({e})"
+# 과부하 타이머 HTML/JS 코드
+timer_html = """
+<div style="font-family:sans-serif; padding:15px; border-radius:8px; background-color:#fff3f3; border:1px solid #ffcaca; color:#d32f2f;">
+    <h4 style="margin-top:0; margin-bottom:5px;">⚠️ 시스템 코어 냉각 중</h4>
+    <p style="margin-top:0; font-size:14px;">동시 접속 과부하 방지를 위해 안전 모드가 가동됩니다.</p>
+    <div id="timer" style="font-size:1.3rem; font-weight:bold;">남은 시간: 60초</div>
+</div>
+<script>
+    var timeLeft = 60;
+    var elem = document.getElementById('timer');
+    var timerId = setInterval(function() {
+        if (timeLeft <= 0) {
+            clearInterval(timerId);
+            elem.innerHTML = "✅ 냉각 완료! 페이지를 새로고침(F5) 해주세요.";
+            elem.style.color = "#2e7d32";
+        } else {
+            elem.innerHTML = "⏳ 남은 시간: " + timeLeft + "초";
+            timeLeft--;
+        }
+    }, 1000);
+</script>
+"""
 
 tab1, tab2 = st.tabs(["🔍 통합 규정 검색 DB", "🕵️‍♂️ AI 감독관 실전 훈련"])
 
 with tab1:
     st.info("💡 질문하시면 지침서를 기반으로 가장 빠르고 정확하게 답변합니다.")
-    for m in st.session_state.search_msgs:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
+    
+    # 💡 [핵심] 채팅 내역만 스크롤되도록 박스(컨테이너) 고정
+    chat_box1 = st.container(height=450)
+    
+    with chat_box1:
+        for m in st.session_state.search_msgs:
+            if m["role"] != "system_error":
+                with st.chat_message(m["role"]): st.markdown(m["content"])
+            else:
+                components.html(timer_html, height=130)
+
     if prompt := st.chat_input("검색할 규정이나 지침을 입력하십시오...", key="search_input"):
         st.session_state.search_msgs.append({"role": "user", "content": prompt})
-        with st.chat_message("user"): st.markdown(prompt)
-        with st.chat_message("assistant"):
-            full_response = st.write_stream(fast_stream(f"질문:{prompt} (한국어로 답해)", "search"))
-        st.session_state.search_msgs.append({"role": "assistant", "content": full_response})
+        
+        with chat_box1:
+            with st.chat_message("user"): st.markdown(prompt)
+            with st.chat_message("assistant"):
+                # 로딩 텍스트 즉시 출력
+                status_text = st.empty()
+                status_text.markdown("🔄 **[시스템] 지침서 DB를 스캔하며 타이핑을 준비 중입니다...**")
+                
+                try:
+                    response = model.generate_content([pdf_files[0], pdf_files[1], f"질문:{prompt} (한국어로 답해)"], stream=True)
+                    
+                    def stream_generator():
+                        first_chunk = True
+                        for chunk in response:
+                            if first_chunk:
+                                status_text.empty() # 타이핑 시작 순간 로딩 텍스트 삭제
+                                first_chunk = False
+                            if chunk.text:
+                                yield chunk.text
+                                
+                    full_response = st.write_stream(stream_generator)
+                    st.session_state.search_msgs.append({"role": "assistant", "content": full_response})
+                    
+                except ResourceExhausted:
+                    status_text.empty()
+                    components.html(timer_html, height=130)
+                    st.session_state.search_msgs.append({"role": "system_error", "content": "error"})
+                except Exception as e:
+                    status_text.empty()
+                    st.error(f"⚠️ 오류 발생: {e}")
 
 with tab2:
     st.info("💡 답변을 제출하면 즉시 채점 후, 새로운 질문을 자동으로 생성합니다.")
-    for m in st.session_state.train_msgs:
-        with st.chat_message(m["role"]): st.markdown(m["content"])
-    if st.session_state.current_q is None:
-        with st.chat_message("assistant"):
-            q_text = st.write_stream(fast_stream("인증평가 현장에서 직원에게 물어볼 짧은 규정 질문 1개만 해줘. 한국어로.", "question"))
-            st.session_state.current_q = q_text
-            st.session_state.train_msgs.append({"role": "assistant", "content": q_text})
+    
+    chat_box2 = st.container(height=450)
+    
+    with chat_box2:
+        for m in st.session_state.train_msgs:
+            if m["role"] != "system_error":
+                with st.chat_message(m["role"]): st.markdown(m["content"])
+            else:
+                components.html(timer_html, height=130)
+                
+        if st.session_state.current_q is None:
+            with st.chat_message("assistant"):
+                status_text2 = st.empty()
+                status_text2.markdown("🔄 **[감독관 대기 중] 새로운 질문을 생성하고 있습니다...**")
+                try:
+                    res_q = model.generate_content([pdf_files[0], pdf_files[1], "인증평가 현장에서 직원에게 물어볼 짧은 규정 질문 1개만 해줘. 한국어로."], stream=True)
+                    def stream_q():
+                        first = True
+                        for chunk in res_q:
+                            if first:
+                                status_text2.empty()
+                                first = False
+                            if chunk.text: yield chunk.text
+                    q_text = st.write_stream(stream_q)
+                    st.session_state.current_q = q_text
+                    st.session_state.train_msgs.append({"role": "assistant", "content": q_text})
+                except ResourceExhausted:
+                    status_text2.empty()
+                    components.html(timer_html, height=130)
+
     if train_prompt := st.chat_input("감독관의 질문에 답변하십시오...", key="train_input"):
         st.session_state.train_msgs.append({"role": "user", "content": train_prompt})
-        with st.chat_message("user"): st.markdown(train_prompt)
-        with st.chat_message("assistant"):
-            eval_text = st.write_stream(fast_stream(f"질문 '{st.session_state.current_q}'에 대한 답변 '{train_prompt}'을 한국어로 평가해줘.", "eval"))
-            st.session_state.train_msgs.append({"role": "assistant", "content": eval_text})
-        with st.chat_message("assistant"):
-            st.markdown("---")
-            next_q_text = st.write_stream(fast_stream("새로운 인증평가 질문 1개만 한국어로 해줘.", "question"))
-            st.session_state.current_q = next_q_text
-            st.session_state.train_msgs.append({"role": "assistant", "content": f"---\n{next_q_text}"})
+        
+        with chat_box2:
+            with st.chat_message("user"): st.markdown(train_prompt)
+            with st.chat_message("assistant"):
+                status_text3 = st.empty()
+                status_text3.markdown("🔄 **[평가 중] 답변을 규정과 대조하여 분석 중입니다...**")
+                try:
+                    res_eval = model.generate_content([pdf_files[0], pdf_files[1], f"질문 '{st.session_state.current_q}'에 대한 답변 '{train_prompt}'을 한국어로 평가해줘."], stream=True)
+                    def stream_eval():
+                        first = True
+                        for chunk in res_eval:
+                            if first:
+                                status_text3.empty()
+                                first = False
+                            if chunk.text: yield chunk.text
+                    eval_text = st.write_stream(stream_eval)
+                    st.session_state.train_msgs.append({"role": "assistant", "content": eval_text})
+                    
+                    st.markdown("---")
+                    res_next_q = model.generate_content([pdf_files[0], pdf_files[1], "새로운 인증평가 질문 1개만 한국어로 해줘."], stream=True)
+                    next_q_text = st.write_stream(res_next_q)
+                    st.session_state.current_q = next_q_text
+                    st.session_state.train_msgs.append({"role": "assistant", "content": f"---\n{next_q_text}"})
+                except ResourceExhausted:
+                    status_text3.empty()
+                    components.html(timer_html, height=130)
+                    st.session_state.train_msgs.append({"role": "system_error", "content": "error"})
