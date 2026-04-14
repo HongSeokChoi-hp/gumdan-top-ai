@@ -6,41 +6,102 @@ import os
 import random
 
 # ============================================================
-# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI 및 테두리 설정
+# 🎨 1. [디자인/보안] 병원 전용 프리미엄 UI 및 모바일 반응형 설정
 # ============================================================
 SET_PASSWORD = "0366" 
 
 st.set_page_config(page_title="검단탑병원 인증 AI 마스터", page_icon="🏅", layout="wide", initial_sidebar_state="expanded")
 
+# [핵심] 스트림릿 잡다한 아이콘 완벽 제거 및 모바일 고급화 CSS
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; }
     .stApp { background-color: #f8fafc; }
-    .enterprise-header { background: linear-gradient(135deg, #003366 0%, #005691 100%); color: white; padding: 45px 55px; border-radius: 20px; margin-bottom: 45px; box-shadow: 0 15px 50px rgba(0, 51, 145, 0.35); }
-    .badge { background: #8CC63F; color: #003366; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-bottom: 20px; display: inline-block; font-size: 1rem; }
+    
+    /* 🚫 스트림릿 기본 UI/아이콘 완벽 제거 (우측 상단 깃허브, 연필, 하단 배지 등) */
+    header {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stDeployButton {display: none !important;}
+    .viewerBadge_container__1QSob {display: none !important;}
+    .viewerBadge_link__1S137 {display: none !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    
+    /* 상단 빈 공간 최소화 */
+    .block-container {padding-top: 2rem !important; padding-bottom: 2rem !important;}
+
+    /* 🖥️ PC 버전 기본 디자인 */
+    .enterprise-header { 
+        background: linear-gradient(135deg, #003366 0%, #005691 100%); 
+        color: white; padding: 45px 55px; border-radius: 20px; 
+        margin-bottom: 40px; box-shadow: 0 15px 50px rgba(0, 51, 145, 0.35); 
+    }
+    .badge { 
+        background: #8CC63F; color: #003366; padding: 10px 20px; 
+        border-radius: 8px; font-weight: bold; margin-bottom: 20px; 
+        display: inline-block; font-size: 1rem; 
+    }
     .enterprise-header h1 { margin: 0; font-size: 3.2rem; font-weight: 900; color: white; letter-spacing: -2px; }
-    [data-testid="stChatInput"] { border: 4px solid #005691 !important; border-radius: 20px !important; box-shadow: 0 15px 55px rgba(0, 86, 145, 0.4) !important; background-color: white !important; padding: 18px !important; }
-    .stTabs [data-baseweb="tab-list"] { gap: 30px; }
-    .stTabs [data-baseweb="tab"] { height: 75px; background-color: #f1f5f9; border-radius: 15px 15px 0 0; padding: 0 50px; font-weight: 800; color: #64748b; font-size: 1.3rem; }
+    
+    [data-testid="stChatInput"] { 
+        border: 4px solid #005691 !important; border-radius: 20px !important; 
+        box-shadow: 0 15px 55px rgba(0, 86, 145, 0.3) !important; 
+        background-color: white !important; padding: 15px !important; 
+    }
+    
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
+    .stTabs [data-baseweb="tab"] { 
+        height: 65px; background-color: #f1f5f9; border-radius: 15px 15px 0 0; 
+        padding: 0 40px; font-weight: 800; color: #64748b; font-size: 1.2rem; 
+    }
     .stTabs [aria-selected="true"] { background-color: #005691 !important; color: white !important; }
+
+    /* 📱 모바일 전용 반응형 디자인 (화면이 작아질 때 자동 적용) */
+    @media (max-width: 768px) {
+        .enterprise-header { 
+            padding: 30px 20px !important; 
+            border-radius: 15px !important; 
+            margin-bottom: 25px !important;
+        }
+        .enterprise-header h1 { 
+            font-size: 2.2rem !important; 
+            line-height: 1.2 !important;
+            word-break: keep-all !important;
+        }
+        .badge { 
+            font-size: 0.85rem !important; 
+            padding: 8px 15px !important; 
+            margin-bottom: 15px !important;
+        }
+        /* 모바일 탭 디자인 최적화 */
+        .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+        .stTabs [data-baseweb="tab"] { 
+            padding: 0 15px !important; 
+            font-size: 1rem !important; 
+            height: 50px !important; 
+        }
+        /* 모바일 로그인 화면 여백 조절 */
+        [data-testid="stTextInput"] { margin-top: 15px !important; }
+        .block-container {padding-top: 1rem !important;}
+    }
 </style>
 """, unsafe_allow_html=True)
 
 if not st.session_state.get("authenticated", False):
-    st.write("<br><br><br>", unsafe_allow_html=True)
+    st.write("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.4, 1])
     with col2:
-        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
-        st.markdown("<h2 style='text-align:center;'>🏥 검단탑병원 인증 AI 시스템</h2>", unsafe_allow_html=True)
-        pwd = st.text_input("접속 코드를 입력하십시오.", type="password", placeholder="보안 코드를 입력하세요")
+        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_container_width=True)
+        st.markdown("<h3 style='text-align:center; font-weight:800; color:#003366; margin-top:20px;'>인증 AI 마스터 접속</h3>", unsafe_allow_html=True)
+        pwd = st.text_input("", type="password", placeholder="보안 코드를 입력하세요 (ex. 0366)")
         if pwd == SET_PASSWORD: st.session_state.authenticated = True; st.rerun()
         else:
             if pwd: st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
 # ============================================================
-# 🔑 2. API 키 및 답변 엔진 (글자만 쏙쏙 뽑는 로직 완벽 적용)
+# 🔑 2. API 키 및 답변 엔진 (글자만 쏙쏙 뽑는 로직)
 # ============================================================
 raw_keys = st.secrets.get("GOOGLE_API_KEYS", st.secrets.get("GOOGLE_API_KEY", []))
 API_KEYS = [raw_keys] if isinstance(raw_keys, str) else list(raw_keys)
@@ -56,29 +117,24 @@ def generate_with_retry(prompt_text):
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt_text, stream=True)
             
-            # [핵심] JSON 포장지를 뜯고 순수 한글 텍스트만 추출하는 제너레이터
             def text_extractor():
                 for chunk in response:
                     try:
-                        if chunk.text:
-                            yield chunk.text
-                    except Exception:
-                        pass
+                        if chunk.text: yield chunk.text
+                    except Exception: pass
             return text_extractor()
             
-        except Exception:
-            continue # 에러 나면 다음 키로 재시도
+        except Exception: continue
             
     raise Exception("모든 AI 엔진이 응답하지 않습니다.")
 
 # ============================================================
-# 📚 3. 0초 로딩 (서버 과부하 원천 차단)
+# 📚 3. 0초 로딩 
 # ============================================================
 @st.cache_resource
 def load_vdb():
     if not os.path.exists("faiss_index_saved"):
         return None, "🚨 서버에 'faiss_index_saved' 지식 폴더가 없습니다."
-    
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=API_KEYS[0])
         return FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True), None
@@ -90,7 +146,7 @@ st.markdown("<div class='enterprise-header'><div class='badge'>GUMDAN TOP HOSPIT
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
     st.markdown("---")
-    st.success("📡 **시스템 상태: 정상 작동 중**")
+    st.success("📡 **시스템 정상 가동 중**")
 
 vdb, error_msg = load_vdb()
 if error_msg: st.error(error_msg); st.stop()
@@ -105,12 +161,11 @@ if "current_q" not in st.session_state: st.session_state.current_q = None
 tab1, tab2 = st.tabs(["🔍 통합 규정 검색", "🕵️‍♂️ AI 감독관 훈련"])
 
 with tab1:
-    chat_box1 = st.container(height=520)
+    chat_box1 = st.container(height=550)
     for m in st.session_state.search_msgs:
         with chat_box1.chat_message(m["role"]): st.markdown(m["content"])
 
-    # 업데이트 확인용 텍스트 추가 (이 글자가 보이면 새 버전 적용 완료!)
-    if query := st.chat_input("규정이나 지침에 대해 질문하십시오... (최적화 완료)", key="search_input"):
+    if query := st.chat_input("규정이나 지침에 대해 질문하십시오...", key="search_input"):
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with chat_box1.chat_message("user"): st.markdown(query)
         with chat_box1.chat_message("assistant"):
@@ -125,7 +180,7 @@ with tab1:
 
 with tab2:
     st.info("💡 현장 감독관의 질문에 답변하여 실전 능력을 테스트하십시오.")
-    chat_box2 = st.container(height=450)
+    chat_box2 = st.container(height=480)
     for m in st.session_state.train_msgs:
         with chat_box2.chat_message(m["role"]): st.markdown(m["content"])
     
@@ -140,8 +195,7 @@ with tab2:
             except:
                 st.error("⚠️ 질문 생성 실패.")
 
-    # 업데이트 확인용 텍스트 추가
-    if answer_input := st.chat_input("답변을 입력하십시오... (최적화 완료)", key="train_input"):
+    if answer_input := st.chat_input("답변을 입력하십시오...", key="train_input"):
         if st.session_state.current_q and st.session_state.current_q != "생성중":
             st.session_state.train_msgs.append({"role": "user", "content": answer_input})
             with chat_box2.chat_message("user"): st.markdown(answer_input)
