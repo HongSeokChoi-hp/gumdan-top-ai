@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 상단 배너 한 줄 고정 + 입력창 꺾쇠 완전 제거 CSS (수정본)
+# 🎨 [디자인] 상단 배너 + 입력창 주변 '이상한 네모' 및 높이 보정 CSS
 # ============================================================
 st.markdown("""
 <style>
@@ -47,7 +47,7 @@ st.markdown("""
         margin-top: 0px !important; 
     }
 
-    /* 상단 배너: 모바일에서도 절대 줄바꿈 없는 한 줄 고정 */
+    /* 상단 배너 디자인 */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
         padding: 10px 15px; 
@@ -72,7 +72,7 @@ st.markdown("""
     }
     .enterprise-header img { height: 22px !important; flex-shrink: 0; } 
 
-    /* 상단 인터페이스 천장 고정 */
+    /* 상단 고정 */
     div[data-testid="stVerticalBlock"] > div:has(.enterprise-header) {
         position: sticky !important;
         top: 0 !important;
@@ -81,7 +81,7 @@ st.markdown("""
         padding-top: 15px !important;
     }
     
-    /* 모드 전환 스위치 고정 */
+    /* 모드 전환 스위치 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         position: sticky !important;
         top: 68px !important; 
@@ -98,49 +98,35 @@ st.markdown("""
         display: inline-flex;
         gap: 10px;
     }
-    div[role="radiogroup"] label { margin: 0 !important; font-weight: 700 !important; }
 
-    /* 🚨 [핵심 수정] 입력창 인터페이스: 내부 잔선 및 꺾쇠 박멸 */
+    /* 🚨 [긴급 수정] 채팅창 주변 '흰색 네모' 및 '높이' 문제 해결 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
-        padding: 15px 0 35px 0 !important; /* 아래쪽 여백 충분히 확보 */
-        background-color: #F8FAFC !important; 
+        padding: 5px 0 10px 0 !important; /* 위아래 여백 최소화 (높이 감소) */
+        background-color: transparent !important; /* 주변 흰색 네모 박멸 */
         z-index: 1001 !important; 
     }
 
-    /* 스트림릿 기본 테두리와 포커스 효과를 모두 투명화 */
-    div[data-testid="stChatInput"] div,
+    /* 입력창 자체를 감싸는 컨테이너 */
+    div[data-testid="stChatInput"] > div { 
+        background-color: #ffffff !important; 
+        border: 2px solid #005691 !important; 
+        border-radius: 25px !important; 
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; /* 무거운 박스 대신 가벼운 그림자 */
+        margin: 0 10px !important; /* 좌우 여백 살짝 줌 */
+    }
+
+    /* 내부 입력 필드 잔선 제거 */
     div[data-testid="stChatInput"] [data-baseweb="base-input"],
-    div[data-testid="stChatInput"] [data-baseweb="textarea"],
-    div[data-testid="stChatInput"] *::before,
-    div[data-testid="stChatInput"] *::after {
+    div[data-testid="stChatInput"] [data-baseweb="textarea"] {
         border: none !important;
         outline: none !important;
         box-shadow: none !important;
         background-color: transparent !important;
-        appearance: none !important;
     }
 
-    /* 우리가 원하는 깨끗한 파란 테두리만 최외곽에 적용 */
-    div[data-testid="stChatInput"] > div { 
-        border: 2px solid #005691 !important; 
-        border-radius: 20px !important; 
-        background-color: #ffffff !important;
-        overflow: hidden !important;
-        padding: 2px !important;
-    }
-    
-    /* 실제 텍스트 영역 여백 및 색상 조정 */
-    div[data-testid="stChatInput"] textarea {
-        background-color: #ffffff !important; 
-        color: #111827 !important;
-        -webkit-text-fill-color: #111827 !important; 
-        padding: 12px 15px !important;
-        line-height: 1.5 !important;
-    }
-
-    /* 채팅 말풍선 디자인 */
+    /* 채팅 메시지 말풍선 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
@@ -152,7 +138,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 로직 (원본 복구)
+# 🔐 [인증] 로그인 로직 (원본 유지)
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -168,7 +154,7 @@ if not st.session_state.get("authenticated", False):
             st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
-# 🧠 [엔진] DB 로드 (원본 복구)
+# 🧠 [엔진] DB 로드 (원본 유지)
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
@@ -197,7 +183,7 @@ def get_intelligent_response(prompt_text):
         if chunk.content:
             yield chunk.content
 
-# 🗂️ [메인 UI] 원본 복구
+# 🗂️ [메인 UI] 원본 유지
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
         st.image("검단탑병원-로고_고화질.png")
@@ -231,7 +217,7 @@ if mode == "🔍 인증 지침서 검색":
     for m in st.session_state.search_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-# 🕵️‍♂️ 모드 2: 모의훈련 (원본 로직)
+# 🕵️‍♂️ 모드 2: 모의훈련
 elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
     st.info("💡 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
     if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
