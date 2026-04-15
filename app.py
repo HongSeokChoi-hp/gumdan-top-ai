@@ -20,7 +20,7 @@ SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증조사 AI 전문가", page_icon="🏅", layout="wide", initial_sidebar_state="auto")
 
 # ============================================================
-# 🎨 UI 고급화 및 [상하단 고정 & 모바일 글자색 수정] CSS
+# 🎨 UI 고급화 (상하단 고정 & 다크모드 방어 유지)
 # ============================================================
 st.markdown("""
 <style>
@@ -30,18 +30,11 @@ st.markdown("""
     .stApp { background-color: #F8FAFC !important; }
     p, span, div, li, h2, h3, h4 { color: #111827 !important; }
     
-    /* 스트림릿 찌꺼기 은폐 */
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton { display: none !important; visibility: hidden !important; }
     
-    /* 화면 상하 여백 최소화 */
-    .block-container { 
-        padding-top: 0rem !important; 
-        padding-bottom: 0rem !important; 
-        margin-top: 0px !important; 
-    }
+    .block-container { padding-top: 0rem !important; padding-bottom: 0rem !important; margin-top: 0px !important; }
 
-    /* 초슬림 헤더 */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
         padding: 10px 15px; 
@@ -57,7 +50,6 @@ st.markdown("""
     .enterprise-header h1 { margin: 0; font-size: 1.2rem !important; font-weight: 800; }
     .enterprise-header img { height: 24px !important; } 
 
-    /* 스위치(라디오 버튼) 디자인 고급화 */
     div[role="radiogroup"] {
         background-color: #e2e8f0;
         padding: 5px;
@@ -65,46 +57,29 @@ st.markdown("""
         display: inline-flex;
         gap: 10px;
     }
-    div[role="radiogroup"] label {
-        margin: 0 !important;
-        font-weight: 700 !important;
-    }
+    div[role="radiogroup"] label { margin: 0 !important; font-weight: 700 !important; }
 
-    /* ============================================================
-       🚨 1. 상단 인터페이스(타이틀+스위치) 천장 영구 고정
-       ============================================================ */
-    /* 타이틀 영역 고정 */
+    /* 상단 인터페이스 천장 고정 */
     div[data-testid="stVerticalBlock"] > div:has(.enterprise-header) {
         position: sticky !important;
         top: 0 !important;
         z-index: 1000 !important;
-        background-color: #F8FAFC !important; /* 뒤로 넘어가는 글씨 가림막 */
+        background-color: #F8FAFC !important; 
         padding-top: 15px !important;
     }
-    /* 스위치 영역 고정 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         position: sticky !important;
-        top: 70px !important; /* 타이틀 바로 밑에 안착 */
+        top: 70px !important; 
         z-index: 999 !important;
         background-color: #F8FAFC !important;
         padding-bottom: 10px !important;
-        border-bottom: 1px solid #e2e8f0 !important; /* 깔끔한 구분선 */
+        border-bottom: 1px solid #e2e8f0 !important; 
     }
 
-    /* ============================================================
-       🚨 2. 하단 입력창 고정 및 모바일 글자색 증발 방지
-       ============================================================ */
-    /* 대화창 영역을 끝까지 밀어냄 */
-    div[data-testid="stVerticalBlockOuter"] {
-        min-height: 100dvh;
-        display: flex;
-        flex-direction: column;
-    }
-    div[data-testid="stVerticalBlock"] {
-        flex-grow: 1 !important;
-    }
+    /* 하단 입력창 바닥 고정 */
+    div[data-testid="stVerticalBlockOuter"] { min-height: 100dvh; display: flex; flex-direction: column; }
+    div[data-testid="stVerticalBlock"] { flex-grow: 1 !important; }
 
-    /* 맨 밑바닥 고정 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -114,20 +89,14 @@ st.markdown("""
         z-index: 1001 !important; 
         margin-top: auto !important;
     }
+    div[data-testid="stChatInput"] > div { border: 2px solid #005691 !important; border-radius: 20px !important; }
     
-    div[data-testid="stChatInput"] > div {
-        border: 2px solid #005691 !important; 
-        border-radius: 20px !important; 
-    }
-    
-    /* [핵심] 다크모드 방어: 텍스트 입력 칸을 무조건 하얗게, 글씨는 무조건 까맣게 */
     [data-testid="stChatInput"] div[data-baseweb="textarea"], [data-testid="stChatInput"] textarea {
         background-color: #ffffff !important; 
         color: #111827 !important;
-        -webkit-text-fill-color: #111827 !important; /* iOS 다크모드 강제 덮어쓰기 */
+        -webkit-text-fill-color: #111827 !important; 
     }
 
-    /* 채팅 말풍선 디자인 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
@@ -139,13 +108,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 로그인 페이지
+# 🔐 로그인
 if not st.session_state.get("authenticated", False):
     st.write("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        if os.path.exists("검단탑병원-로고_고화질.png"): 
-            st.image("검단탑병원-로고_고화질.png", use_container_width=True)
+        if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png", use_container_width=True)
         st.markdown("<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>인증조사 AI 전문가</h3>", unsafe_allow_html=True)
         pwd = st.text_input("인증코드", type="password", placeholder="보안 코드를 입력하세요", label_visibility="collapsed")
         if pwd == SET_PASSWORD: st.session_state.authenticated = True; st.rerun()
@@ -157,8 +125,7 @@ if not st.session_state.get("authenticated", False):
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
-    if not os.path.exists("faiss_index_saved"): 
-        return None, "faiss_index_saved 폴더가 없습니다."
+    if not os.path.exists("faiss_index_saved"): return None, "faiss_index_saved 폴더가 없습니다."
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=random.choice(API_KEYS))
         vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
@@ -177,7 +144,7 @@ def get_intelligent_response(prompt_text):
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
-        temperature=0.3 
+        temperature=0.0 # 🚨 [핵심 변경] 창의성 완전 차단. 팩트 복사기 모드.
     )
     for chunk in llm.stream(prompt_text):
         if chunk.content:
@@ -211,17 +178,16 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 🚨 [핵심 해결] 핸드북 최우선 검토를 위한 강력한 프롬프트 지시
+# 🚨 [핵심 변경] 원문 복붙 강제 및 출처 표기 프롬프트
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
 [모드 1: 일상 대화 및 인사] 사용자가 지침과 무관한 가벼운 대화를 건넬 때는 자연스럽게 응하십시오.
-[모드 2: 지침서 질문] 
-1. 병원 규정 질문이 들어오면 반드시 제공된 [원문 데이터] 중 '핸드북(Handbook)' 및 핵심 지침서 내용을 **최우선으로 검토하고 반영**하여 객관적으로 답변하십시오.
-2. 원문에 없는 내용은 절대 지어내지 마십시오.
-3. 두리뭉실한 답변을 피하고, 구체적인 절차나 기준을 불릿 기호(-, 1. 2.)를 사용하여 명확하게 정리하십시오."""
+[모드 2: 지침서 질문 (엄격한 원문 발췌 모드)]
+1. 제공된 [원문 데이터]를 절대 임의로 요약하거나 말투를 각색하지 마십시오. 
+2. 원문에 적힌 문장과 단어를 거의 그대로(복사하듯이) 발췌하여 답변하십시오.
+3. 원문 중 '핸드북(Handbook)'에 관련된 내용이 있다면 가장 먼저 최우선으로 출력하십시오.
+4. 답변의 각 항목 끝에는 반드시 해당 내용이 어느 데이터에서 왔는지 출처(예: [근거 1], [근거 3])를 명확히 표기하십시오.
+5. 제공된 데이터에 없는 내용은 절대 지어내지 마십시오."""
 
-# ============================================================
-# 🖥️ 화면 출력
-# ============================================================
 if mode == "🔍 인증 지침서 검색":
     for m in st.session_state.search_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
@@ -231,7 +197,7 @@ elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
     if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
         with st.chat_message("assistant"):
             try:
-                q_stream = get_intelligent_response("병원 인증평가 감독관이 현장 직원에게 던질법한 날카로운 질문 1개만 생성하시오.")
+                q_stream = get_intelligent_response("병원 인증평가 감독관이 현장 직원에게 던질법한 날카로운 질문 1개만 생성하시오. 인사말은 생략해.")
                 st.session_state.current_q = st.write_stream(q_stream)
                 st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
             except Exception as e:
@@ -240,9 +206,6 @@ elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
     for m in st.session_state.train_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-# ============================================================
-# ⌨️ 맨 밑바닥 고정 입력창
-# ============================================================
 placeholder_text = "규정 질문 또는 가볍게 인사를 건네보세요..." if mode == "🔍 인증 지침서 검색" else "감독관 질문에 답변하십시오..."
 
 if query := st.chat_input(placeholder_text):
@@ -266,7 +229,7 @@ if query := st.chat_input(placeholder_text):
                 try:
                     docs = vdb.similarity_search(st.session_state.current_q, k=4)
                     ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. [원문] 중 핸드북 내용을 우선 고려하여 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
+                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘. 단, [원문] 내용을 임의로 각색하지 말고 원문 그대로 인용하며, 내용 끝에 출처를 표기해.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
                     res_stream = get_intelligent_response(eval_p)
                     eval_ans = st.write_stream(res_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": eval_ans})
