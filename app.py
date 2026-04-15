@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 상단 배너 한 줄 고정 + 입력창 꺾쇠 완전 제거 CSS
+# 🎨 [디자인] 상단 배너 한 줄 고정 + 입력창 꺾쇠 완전 제거 CSS (수정본)
 # ============================================================
 st.markdown("""
 <style>
@@ -47,7 +47,7 @@ st.markdown("""
         margin-top: 0px !important; 
     }
 
-    /* 🚨 [수정 1] 상단 배너: 모바일에서도 절대 줄바꿈 없는 한 줄 고정 */
+    /* 상단 배너: 모바일에서도 절대 줄바꿈 없는 한 줄 고정 */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
         padding: 10px 15px; 
@@ -64,10 +64,10 @@ st.markdown("""
     .enterprise-header * { color: #ffffff !important; } 
     .enterprise-header h1 { 
         margin: 0; 
-        font-size: clamp(0.85rem, 4.3vw, 1.25rem) !important; /* 화면 폭에 맞춰 자동 축소 */
+        font-size: clamp(0.85rem, 4.3vw, 1.25rem) !important; 
         font-weight: 800; 
-        white-space: nowrap !important; /* 줄바꿈 절대 방지 */
-        letter-spacing: -1px !important; /* 자간 축소로 한 줄 확보 */
+        white-space: nowrap !important; 
+        letter-spacing: -1px !important; 
         flex-shrink: 0;
     }
     .enterprise-header img { height: 22px !important; flex-shrink: 0; } 
@@ -100,48 +100,44 @@ st.markdown("""
     }
     div[role="radiogroup"] label { margin: 0 !important; font-weight: 700 !important; }
 
-    /* 🚨 [수정 2] 입력창 인터페이스: 지저분한 꺾쇠([]) 기호 영구 박멸 */
+    /* 🚨 [핵심 수정] 입력창 인터페이스: 내부 잔선 및 꺾쇠 박멸 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
-        padding-bottom: 30px !important;
-        padding-top: 15px !important;
+        padding: 15px 0 35px 0 !important; /* 아래쪽 여백 충분히 확보 */
         background-color: #F8FAFC !important; 
         z-index: 1001 !important; 
-        margin-top: auto !important;
     }
 
-    /* 꺾쇠를 유발하는 스트림릿 기본 보더/가상요소 싹 투명화 */
+    /* 스트림릿 기본 테두리와 포커스 효과를 모두 투명화 */
     div[data-testid="stChatInput"] div,
     div[data-testid="stChatInput"] [data-baseweb="base-input"],
-    div[data-testid="stChatInput"] [data-baseweb="textarea"] {
+    div[data-testid="stChatInput"] [data-baseweb="textarea"],
+    div[data-testid="stChatInput"] *::before,
+    div[data-testid="stChatInput"] *::after {
         border: none !important;
         outline: none !important;
         box-shadow: none !important;
-    }
-    
-    /* 꺾쇠의 주범인 ::before, ::after 완전 제거 */
-    div[data-testid="stChatInput"] *::before, 
-    div[data-testid="stChatInput"] *::after {
-        display: none !important;
-        content: none !important;
-        border: none !important;
+        background-color: transparent !important;
+        appearance: none !important;
     }
 
-    /* 우리가 원하는 깨끗한 파란 테두리만 외곽에 입힘 */
+    /* 우리가 원하는 깨끗한 파란 테두리만 최외곽에 적용 */
     div[data-testid="stChatInput"] > div { 
         border: 2px solid #005691 !important; 
         border-radius: 20px !important; 
         background-color: #ffffff !important;
-        overflow: hidden;
+        overflow: hidden !important;
+        padding: 2px !important;
     }
     
-    [data-testid="stChatInput"] textarea {
+    /* 실제 텍스트 영역 여백 및 색상 조정 */
+    div[data-testid="stChatInput"] textarea {
         background-color: #ffffff !important; 
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important; 
-        border: none !important;
-        padding: 12px !important;
+        padding: 12px 15px !important;
+        line-height: 1.5 !important;
     }
 
     /* 채팅 말풍선 디자인 */
