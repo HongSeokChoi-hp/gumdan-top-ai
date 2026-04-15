@@ -1,14 +1,12 @@
 import streamlit as st
-# 🚨 말썽을 일으키던 구형 genai 라이브러리 호출 삭제
 from langchain_community.vectorstores import FAISS
-# 🚨 성공이 검증된 LangChain 생성 엔진(ChatGoogleGenerativeAI) 추가 탑재
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import os
 import random
 import time
 
 # ============================================================
-# 🔑 기획자님의 Secrets 완벽 연동 (정상 작동 확인 완료)
+# 🔑 기획자님의 Secrets 완벽 연동 
 # ============================================================
 try:
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
@@ -53,7 +51,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 검색 엔진 로드 (LangChain 기반 - 정상 작동 통과)
+# 🧠 검색 엔진 로드 (gemini-embedding-001 정상 통과 유지)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
@@ -75,19 +73,18 @@ if not vdb:
     st.stop()
 
 # ============================================================
-# 🚨 [최종 해결] 구형 genai 폐기, 안전한 LangChain으로 통신 일원화
+# 🚨 [완벽 복구] 죽은 1.5 모델 폐기, 기획자님의 정답 '2.5-flash' 탑재
 # ============================================================
 def get_intelligent_response(prompt_text):
     time.sleep(1.6)
     
-    # 에러 없는 LangChain 통신망으로 gemini-1.5-flash 호출
+    # 기획자님이 원래 쓰시던 2026년 최신 2.5-flash 모델로 확정
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash", 
+        model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
         temperature=0.2
     )
     
-    # 스트리밍(타다닥) 효과를 위한 제너레이터 반환
     for chunk in llm.stream(prompt_text):
         if chunk.content:
             yield chunk.content
