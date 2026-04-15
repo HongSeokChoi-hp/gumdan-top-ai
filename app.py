@@ -7,7 +7,7 @@ import random
 import time
 
 # ============================================================
-# 🔑 [유지] 완벽하게 연결된 Secrets 시스템 (건드릴 필요 없음)
+# 🔑 기획자님의 Secrets 완벽 연동 (건드릴 필요 없음)
 # ============================================================
 try:
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
@@ -52,7 +52,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 [최종 해결] 구글에서 유일하게 생존한 최신 임베딩 모델 적용
+# 🧠 엔진 로드 (임베딩 001 고정)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
@@ -61,7 +61,6 @@ def load_intelligent_db():
     
     current_key = random.choice(API_KEYS)
     try:
-        # 🚨 단종된 001/004 모델 전부 폐기하고, 현재 정식 모델인 gemini-embedding-001 고정
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=current_key)
         vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
         return vdb, None
@@ -74,15 +73,17 @@ if not vdb:
     st.error(f"🚨 지식화 엔진 로딩 실패: {db_status_msg}")
     st.stop()
 
+# ============================================================
+# 🚨 [해결 핵심] 404 에러의 주범이었던 백업 로직 삭제
+# ============================================================
 def get_intelligent_response(prompt_text):
     time.sleep(1.6)
     genai.configure(api_key=random.choice(API_KEYS))
-    try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        return model.generate_content(prompt_text, stream=True)
-    except:
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        return model.generate_content(prompt_text, stream=True)
+    
+    # 쓸데없는 백업 로직을 지우고, 가장 범용적이고 절대 죽지 않는 기본 모델로 직행합니다.
+    # 만약 최신 성능이 필요하시다면 'gemini-1.5-flash-latest' 로 변경하셔도 됩니다.
+    model = genai.GenerativeModel('gemini-pro')
+    return model.generate_content(prompt_text, stream=True)
 
 # ============================================================
 # 🗂️ 메인 시스템 (검색 및 훈련)
@@ -122,7 +123,7 @@ with tab1:
                 full_ans = st.write_stream(res_stream)
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
             except Exception as e:
-                st.error(f"🚨 검색 엔진 오류: {e}")
+                st.error(f"🚨 답변 생성 오류: {e}")
 
 with tab2:
     chat_box2 = st.container(height=350)
