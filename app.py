@@ -52,7 +52,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 [해결 핵심] 004 폐기 -> 100% 안정적인 001 단일 모델로 강제 고정
+# 🧠 [최종 해결] 구글에서 유일하게 생존한 최신 임베딩 모델 적용
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
@@ -61,8 +61,8 @@ def load_intelligent_db():
     
     current_key = random.choice(API_KEYS)
     try:
-        # 🚨 404 에러의 주범이었던 text-embedding-004를 삭제하고 embedding-001로 픽스
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=current_key)
+        # 🚨 단종된 001/004 모델 전부 폐기하고, 현재 정식 모델인 gemini-embedding-001 고정
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=current_key)
         vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
         return vdb, None
     except Exception as e:
