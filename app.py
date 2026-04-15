@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 상단 배너 + 입력창 주변 '이상한 네모' 및 높이 보정 CSS
+# 🎨 [디자인] 글씨 복구 + 화살표 버튼 추가 + 하단 여백 최적화 CSS
 # ============================================================
 st.markdown("""
 <style>
@@ -99,31 +99,51 @@ st.markdown("""
         gap: 10px;
     }
 
-    /* 🚨 [긴급 수정] 채팅창 주변 '흰색 네모' 및 '높이' 문제 해결 */
+    /* 🚨 [최종 보정] 채팅창 글씨 색상 + 화살표 버튼 복구 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
-        padding: 5px 0 10px 0 !important; /* 위아래 여백 최소화 (높이 감소) */
-        background-color: transparent !important; /* 주변 흰색 네모 박멸 */
+        padding: 10px 0 25px 0 !important; 
+        background-color: transparent !important; 
         z-index: 1001 !important; 
     }
 
-    /* 입력창 자체를 감싸는 컨테이너 */
+    /* 입력창 본체 (하얀 배경만 유지) */
     div[data-testid="stChatInput"] > div { 
         background-color: #ffffff !important; 
         border: 2px solid #005691 !important; 
-        border-radius: 25px !important; 
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; /* 무거운 박스 대신 가벼운 그림자 */
-        margin: 0 10px !important; /* 좌우 여백 살짝 줌 */
+        border-radius: 20px !important; 
+        margin: 0 10px !important;
+        overflow: hidden !important;
     }
 
-    /* 내부 입력 필드 잔선 제거 */
-    div[data-testid="stChatInput"] [data-baseweb="base-input"],
-    div[data-testid="stChatInput"] [data-baseweb="textarea"] {
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        background-color: transparent !important;
+    /* 텍스트 입력 영역 (글자색 진하게 복구) */
+    div[data-testid="stChatInput"] textarea {
+        color: #111827 !important; 
+        -webkit-text-fill-color: #111827 !important; 
+        background-color: #ffffff !important;
+        padding: 12px 15px !important;
+    }
+
+    /* 화살표 전송 버튼 복구 및 디자인 강화 */
+    div[data-testid="stChatInput"] button {
+        background-color: #005691 !important; /* 병원 메인 컬러 버튼 */
+        color: white !important;
+        border-radius: 50% !important;
+        padding: 5px !important;
+        margin-right: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* 버튼 내부 SVG 아이콘 가시화 */
+    div[data-testid="stChatInput"] svg {
+        fill: white !important;
+        width: 20px !important;
+        height: 20px !important;
     }
 
     /* 채팅 메시지 말풍선 */
@@ -138,7 +158,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 로직 (원본 유지)
+# 🔐 [인증] 로그인 로직
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -154,7 +174,7 @@ if not st.session_state.get("authenticated", False):
             st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
-# 🧠 [엔진] DB 로드 (원본 유지)
+# 🧠 [엔진] DB 로드
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
@@ -183,7 +203,7 @@ def get_intelligent_response(prompt_text):
         if chunk.content:
             yield chunk.content
 
-# 🗂️ [메인 UI] 원본 유지
+# 🗂️ [메인 UI]
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
         st.image("검단탑병원-로고_고화질.png")
