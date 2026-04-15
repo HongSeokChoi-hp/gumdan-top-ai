@@ -20,7 +20,7 @@ SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증조사 AI 전문가", page_icon="🏅", layout="wide", initial_sidebar_state="auto")
 
 # ============================================================
-# 🎨 UI 고급화 CSS (상하단 고정 & 모바일 최적화 완벽 유지)
+# 🎨 UI 고급화 CSS (유지)
 # ============================================================
 st.markdown("""
 <style>
@@ -142,7 +142,7 @@ def get_intelligent_response(prompt_text):
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
-        temperature=0.1 # 🚨 [핵심 변경] 쓰레기 문자 교정을 위해 최소한의 지능만 허용
+        temperature=0.0 # 🚨 [지능 롤백] 과부하 방지 및 팩트 최우선 
     )
     for chunk in llm.stream(prompt_text):
         if chunk.content:
@@ -176,16 +176,14 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 🚨 [핵심 변경] 90% 정확도 유지 + 쓰레기 문자 교정 + 깊은 검색 지시
+# 🚨 [핵심 변경] 출처 목록 강제 지시 프롬프트
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
-[모드 1: 일상 대화 및 인사] 사용자가 지침과 무관한 가벼운 대화를 건넬 때는 자연스럽게 응하십시오.
-[모드 2: 지침서 질문 (스마트 90% 일치 모드)]
-1. 제공된 [원문 데이터]의 전문 용어와 핵심 문장을 90% 이상 그대로 사용하여 답변의 정확성을 극대화하십시오.
-2. 단, 기계적인 맹목적 복붙은 금지합니다. PDF 변환 중 발생한 깨진 글자(Ÿ, O, 이상한 특수기호 등)와 불규칙한 줄바꿈은 완벽하게 제거하고 사람이 읽기 좋은 문맥으로 교정하십시오.
-3. 사용자가 '핸드북' 내용이나 특정 '제목'을 검색하면, 해당 제목 뒤에 이어지는 구체적인 절차와 내용을 모두 모아서 논리적으로 완성된 답변을 제공하십시오.
-4. 가독성을 위해 불릿 기호(-, 1. 2.)를 적극 활용하여 깔끔하게 포맷팅하십시오.
-5. 답변의 각 항목 끝에는 반드시 해당 내용의 출처(예: [근거 1], [근거 3])를 명확히 표기하십시오.
-6. 제공된 데이터에 없는 내용은 절대 지어내지 마십시오."""
+[모드 2: 지침서 질문 (스마트 90% 일치 및 출처 명시 모드)]
+1. 제공된 [원문 데이터]를 90% 이상 그대로 인용하여 답변하되, 깨진 글자(Ÿ, O 등)와 불규칙한 줄바꿈은 읽기 좋게 교정하십시오.
+2. 문장 끝마다 [근거 1], [근거 2] 처럼 인용 표시를 하십시오.
+3. **가장 중요:** 모든 답변이 끝난 후, 맨 아래에 반드시 **[📚 출처 목록]**을 작성하여 각 근거 번호가 어떤 문서(파일)에서 발췌되었는지 명확히 나열하십시오.
+4. 원문 중 '핸드북(Handbook)'에 관련된 내용이 있다면 최우선으로 반영하십시오.
+5. 제공된 데이터에 없는 내용은 절대 지어내지 마십시오."""
 
 if mode == "🔍 인증 지침서 검색":
     for m in st.session_state.search_msgs:
@@ -213,9 +211,18 @@ if query := st.chat_input(placeholder_text):
         with st.chat_message("user"): st.markdown(query)
         with st.chat_message("assistant"):
             try:
-                # 🚨 [핵심 변경] 검색량을 5개에서 10개로 2배 확장하여, 제목과 내용이 분리된 문서도 전부 긁어옴
-                docs = vdb.similarity_search(query, k=10)
-                ctx = "\n\n".join([f"[근거 {i+1}]: {d.page_content}" for i, d in enumerate(docs)])
+                # 🚨 [지능 롤백] 너무 많은 문서를 줘서 멍청해지는 현상 방지 (k=5 복구)
+                docs = vdb.similarity_search(query, k=5)
+                
+                # 🚨 [출처 해결] 문서의 실제 이름(metadata)을 추출하여 AI에게 함께 전달
+                ctx_list = []
+                for i, d in enumerate(docs):
+                    src = d.metadata.get('source', '지침서 원문')
+                    if isinstance(src, str):
+                        src = src.split('/')[-1].split('\\')[-1] # 파일명만 깔끔하게 추출
+                    ctx_list.append(f"[근거 {i+1} | 출처문서: {src}]\n{d.page_content}")
+                ctx = "\n\n".join(ctx_list)
+                
                 res_stream = get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx}\n\n사용자 입력: {query}")
                 full_ans = st.write_stream(res_stream)
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
@@ -227,9 +234,16 @@ if query := st.chat_input(placeholder_text):
             with st.chat_message("user"): st.markdown(query)
             with st.chat_message("assistant"):
                 try:
-                    docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                    ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘. 단, [원문] 내용을 90% 이상 유지하되 깨진 글자는 교정하고, 내용 끝에 출처를 표기해.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
+                    docs = vdb.similarity_search(st.session_state.current_q, k=4)
+                    ctx_list = []
+                    for i, d in enumerate(docs):
+                        src = d.metadata.get('source', '지침서 원문')
+                        if isinstance(src, str):
+                            src = src.split('/')[-1].split('\\')[-1]
+                        ctx_list.append(f"[근거 {i+1} | 출처문서: {src}]\n{d.page_content}")
+                    ctx = "\n\n".join(ctx_list)
+                    
+                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘. [원문] 내용을 바탕으로 답변하며, 답변 맨 밑에 [📚 출처 목록]을 반드시 작성해.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
                     res_stream = get_intelligent_response(eval_p)
                     eval_ans = st.write_stream(res_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": eval_ans})
