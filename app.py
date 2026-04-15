@@ -20,7 +20,7 @@ SET_PASSWORD = "0366"
 st.set_page_config(page_title="검단탑병원 인증조사 AI 전문가", page_icon="🏅", layout="wide", initial_sidebar_state="auto")
 
 # ============================================================
-# 🎨 꼼수 CSS 전부 제거! 순정 레이아웃 기반 고급화
+# 🎨 UI 고급화 및 [상하단 고정 & 모바일 글자색 수정] CSS
 # ============================================================
 st.markdown("""
 <style>
@@ -34,28 +34,28 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton { display: none !important; visibility: hidden !important; }
     
-    /* 🚨 좁아진 PC 레이아웃 원상 복구 (max-width 꼼수 삭제) */
+    /* 화면 상하 여백 최소화 */
     .block-container { 
-        padding-top: 1rem !important; 
-        padding-bottom: 6rem !important; /* 하단 네이티브 채팅창 공간 확보 */
+        padding-top: 0rem !important; 
+        padding-bottom: 0rem !important; 
         margin-top: 0px !important; 
     }
 
     /* 초슬림 헤더 */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
-        padding: 12px 18px; 
+        padding: 10px 15px; 
         border-radius: 8px; 
         margin-top: 0px;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
         box-shadow: 0 4px 10px rgba(0, 86, 145, 0.1);
         display: flex;
         align-items: center;
         gap: 12px;
     }
     .enterprise-header * { color: #ffffff !important; } 
-    .enterprise-header h1 { margin: 0; font-size: 1.25rem !important; font-weight: 800; }
-    .enterprise-header img { height: 26px !important; } 
+    .enterprise-header h1 { margin: 0; font-size: 1.2rem !important; font-weight: 800; }
+    .enterprise-header img { height: 24px !important; } 
 
     /* 스위치(라디오 버튼) 디자인 고급화 */
     div[role="radiogroup"] {
@@ -70,6 +70,63 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
+    /* ============================================================
+       🚨 1. 상단 인터페이스(타이틀+스위치) 천장 영구 고정
+       ============================================================ */
+    /* 타이틀 영역 고정 */
+    div[data-testid="stVerticalBlock"] > div:has(.enterprise-header) {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        background-color: #F8FAFC !important; /* 뒤로 넘어가는 글씨 가림막 */
+        padding-top: 15px !important;
+    }
+    /* 스위치 영역 고정 */
+    div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
+        position: sticky !important;
+        top: 70px !important; /* 타이틀 바로 밑에 안착 */
+        z-index: 999 !important;
+        background-color: #F8FAFC !important;
+        padding-bottom: 10px !important;
+        border-bottom: 1px solid #e2e8f0 !important; /* 깔끔한 구분선 */
+    }
+
+    /* ============================================================
+       🚨 2. 하단 입력창 고정 및 모바일 글자색 증발 방지
+       ============================================================ */
+    /* 대화창 영역을 끝까지 밀어냄 */
+    div[data-testid="stVerticalBlockOuter"] {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+    }
+    div[data-testid="stVerticalBlock"] {
+        flex-grow: 1 !important;
+    }
+
+    /* 맨 밑바닥 고정 */
+    div[data-testid="stChatInput"] { 
+        position: sticky !important; 
+        bottom: 0 !important; 
+        padding-bottom: 25px !important;
+        padding-top: 15px !important;
+        background-color: #F8FAFC !important; 
+        z-index: 1001 !important; 
+        margin-top: auto !important;
+    }
+    
+    div[data-testid="stChatInput"] > div {
+        border: 2px solid #005691 !important; 
+        border-radius: 20px !important; 
+    }
+    
+    /* [핵심] 다크모드 방어: 텍스트 입력 칸을 무조건 하얗게, 글씨는 무조건 까맣게 */
+    [data-testid="stChatInput"] div[data-baseweb="textarea"], [data-testid="stChatInput"] textarea {
+        background-color: #ffffff !important; 
+        color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important; /* iOS 다크모드 강제 덮어쓰기 */
+    }
+
     /* 채팅 말풍선 디자인 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
@@ -79,9 +136,6 @@ st.markdown("""
         margin-bottom: 10px; 
         border: 1px solid #e2e8f0; 
     }
-    
-    /* 다크모드에서도 입력창 글씨 까맣게 유지 */
-    [data-testid="stChatInput"] textarea { color: #111827 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -130,7 +184,7 @@ def get_intelligent_response(prompt_text):
             yield chunk.content
 
 # ============================================================
-# 🗂️ 메인 시스템 UI (탭 폐기 -> 스위치 모드 도입)
+# 🗂️ 메인 시스템 UI
 # ============================================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): st.image("검단탑병원-로고_고화질.png")
@@ -151,20 +205,22 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 🚨 문제의 원흉(st.tabs)을 버리고 깔끔한 스위치(st.radio)로 모드 선택
 mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
-st.markdown("<hr style='margin-top: 5px; margin-bottom: 20px;'>", unsafe_allow_html=True)
 
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
+# 🚨 [핵심 해결] 핸드북 최우선 검토를 위한 강력한 프롬프트 지시
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
 [모드 1: 일상 대화 및 인사] 사용자가 지침과 무관한 가벼운 대화를 건넬 때는 자연스럽게 응하십시오.
-[모드 2: 지침서 질문] 병원 규정 질문이 들어오면 반드시 제공된 [원문 데이터]에만 근거하여 객관적으로 답변하십시오. 불릿 기호를 사용하여 명확하게 정리하십시오."""
+[모드 2: 지침서 질문] 
+1. 병원 규정 질문이 들어오면 반드시 제공된 [원문 데이터] 중 '핸드북(Handbook)' 및 핵심 지침서 내용을 **최우선으로 검토하고 반영**하여 객관적으로 답변하십시오.
+2. 원문에 없는 내용은 절대 지어내지 마십시오.
+3. 두리뭉실한 답변을 피하고, 구체적인 절차나 기준을 불릿 기호(-, 1. 2.)를 사용하여 명확하게 정리하십시오."""
 
 # ============================================================
-# 🖥️ 모드에 따른 화면 출력
+# 🖥️ 화면 출력
 # ============================================================
 if mode == "🔍 인증 지침서 검색":
     for m in st.session_state.search_msgs:
@@ -185,9 +241,8 @@ elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
 # ============================================================
-# 🚨 [완벽 해결] 스트림릿 순정 네이티브 하단 고정 입력창
+# ⌨️ 맨 밑바닥 고정 입력창
 # ============================================================
-# 이 코드가 코드 최하단에 위치함으로써, 브라우저가 알아서 화면 맨 밑바닥에 딱 붙여줍니다!
 placeholder_text = "규정 질문 또는 가볍게 인사를 건네보세요..." if mode == "🔍 인증 지침서 검색" else "감독관 질문에 답변하십시오..."
 
 if query := st.chat_input(placeholder_text):
@@ -211,7 +266,7 @@ if query := st.chat_input(placeholder_text):
                 try:
                     docs = vdb.similarity_search(st.session_state.current_q, k=4)
                     ctx = "\n\n".join([d.page_content for d in docs])
-                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. [원문]에 근거하여 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
+                    eval_p = f"당신은 엄격한 인증평가 감독관입니다. [원문] 중 핸드북 내용을 우선 고려하여 직원의 답변을 100점 만점으로 채점하고 보완 사항을 설명해줘.\n\n질문: {st.session_state.current_q}\n직원 답변: {query}\n원문:\n{ctx}"
                     res_stream = get_intelligent_response(eval_p)
                     eval_ans = st.write_stream(res_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": eval_ans})
