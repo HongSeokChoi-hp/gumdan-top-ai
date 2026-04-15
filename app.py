@@ -10,7 +10,7 @@ import base64
 # 🔑 [보안] Streamlit Secrets 및 API 키 연동
 # ============================================================
 try:
-    # 여러 개의 API 키 중 랜덤 선택하여 부하 분산
+    # 여러 개의 API 키 중 랜덤 선택하여 부하 분산 (원본 로직)
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
 except Exception:
     st.error("🚨 Streamlit Secrets에서 API 키를 찾을 수 없습니다. 설정 확인이 필요합니다.")
@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 상하단 고정 및 모바일 가독성 최적화 CSS (강력 수정 반영)
+# 🎨 [디자인] 상하단 고정 및 인터페이스 최적화 CSS (원본 복구 + 수술)
 # ============================================================
 st.markdown("""
 <style>
@@ -50,37 +50,31 @@ st.markdown("""
         margin-top: 0px !important; 
     }
 
-    /* 🚨 [수정 1] 상단 배너: 모바일에서도 한 줄로 나오도록 강력 고정 */
+    /* 🚨 [수정 1] 상단 배너: 모바일 한 줄 고정 (white-space: nowrap) */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
-        padding: 10px 15px; 
+        padding: 12px 18px; 
         border-radius: 10px; 
         margin-top: 0px;
         margin-bottom: 5px;
         box-shadow: 0 4px 10px rgba(0, 86, 145, 0.1);
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         width: 100%;
         box-sizing: border-box;
+        overflow: hidden;
     }
     .enterprise-header * { color: #ffffff !important; } 
     .enterprise-header h1 { 
         margin: 0; 
-        font-size: 1.1rem !important; /* 모바일을 위해 크기 살짝 더 축소 */
+        font-size: clamp(0.9rem, 4.3vw, 1.25rem) !important; /* 폰트에 맞게 가변 크기 */
         font-weight: 800; 
-        white-space: nowrap !important; /* 줄바꿈 절대 방지 */
-        letter-spacing: -0.7px !important; /* 자간 축소 */
-        overflow: hidden;
-        text-overflow: ellipsis; /* 혹시 넘치면 말줄임표 처리 */
+        white-space: nowrap !important; /* 줄바꿈 강제 방지 */
+        letter-spacing: -0.8px !important;
+        flex-shrink: 0;
     }
-    
-    /* 더 작은 모바일 기기 대응 */
-    @media screen and (max-width: 360px) {
-        .enterprise-header h1 { font-size: 0.95rem !important; }
-    }
-
-    .enterprise-header img { height: 22px !important; } 
+    .enterprise-header img { height: 26px !important; flex-shrink: 0; } 
 
     /* 상단 인터페이스 천장 영구 고정 (스티키) */
     div[data-testid="stVerticalBlock"] > div:has(.enterprise-header) {
@@ -94,7 +88,7 @@ st.markdown("""
     /* 모드 전환 스위치 고정 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         position: sticky !important;
-        top: 68px !important; 
+        top: 72px !important; 
         z-index: 999 !important;
         background-color: #F8FAFC !important;
         padding-bottom: 12px !important;
@@ -115,7 +109,7 @@ st.markdown("""
     div[data-testid="stVerticalBlockOuter"] { min-height: 100dvh; display: flex; flex-direction: column; }
     div[data-testid="stVerticalBlock"] { flex-grow: 1 !important; }
 
-    /* 🚨 [수정 2] 입력창 인터페이스: 꺾쇠([]) 기호 및 테두리 잔상 '완전 박멸' */
+    /* 🚨 [수정 2] 입력창 인터페이스: 지저분한 꺾쇠([]) 기호 완전 박멸 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -126,36 +120,38 @@ st.markdown("""
         margin-top: auto !important;
     }
     
-    /* 꺾쇠([]) 모양을 만드는 모든 요소를 투명하게 처리 */
-    div[data-testid="stChatInput"] * {
-        border-color: transparent !important;
-        outline: none !important;
-        box-shadow: none !important;
+    /* 꺾쇠를 유발하는 내부 모든 가상 요소 및 보더 제거 */
+    div[data-testid="stChatInput"] > div > div::before,
+    div[data-testid="stChatInput"] > div > div::after,
+    div[data-testid="stChatInput"] [data-baseweb="textarea"]::before,
+    div[data-testid="stChatInput"] [data-baseweb="textarea"]::after {
+        display: none !important;
+        content: none !important;
     }
 
-    /* 바깥쪽 파란 테두리만 우리가 원하는 대로 다시 설정 */
+    /* 입력창 내부 요소들의 테두리 투명화 */
+    div[data-testid="stChatInput"] div[data-baseweb="base-input"],
+    div[data-testid="stChatInput"] div[data-baseweb="textarea"] {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    /* 바깥쪽 메인 테두리만 우리가 원하는 파란색으로 고정 */
     div[data-testid="stChatInput"] > div { 
         border: 2px solid #005691 !important; 
         border-radius: 20px !important; 
         background-color: #ffffff !important;
     }
     
-    /* 내부 꺾쇠 요소 숨기기 */
-    div[data-testid="stChatInput"] div[data-baseweb="textarea"]::before,
-    div[data-testid="stChatInput"] div[data-baseweb="textarea"]::after,
-    div[data-testid="stChatInput"] div[data-baseweb="base-input"]::before,
-    div[data-testid="stChatInput"] div[data-baseweb="base-input"]::after {
-        display: none !important;
-    }
-
-    /* 모바일 다크모드 글자색 보정 */
+    /* 모바일 다크모드 글자색 보정 (배경 흰색 / 글자 검정 강제) */
     [data-testid="stChatInput"] textarea {
         background-color: #ffffff !important; 
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important; 
     }
 
-    /* 채팅 말풍선 고급 디자인 */
+    /* 채팅 말풍선 고급 디자인 (원본 유지) */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
@@ -167,7 +163,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 페이지 로직
+# 🔐 [인증] 로그인 페이지 로직 (원본 복구)
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -184,13 +180,14 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 [엔진] 검색 엔진 로드 및 AI 답변 로직
+# 🧠 [엔진] 검색 엔진 로드 및 AI 답변 로직 (원본 복구)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
         return None, "faiss_index_saved 데이터가 없습니다."
     try:
+        # 캐싱된 임베딩 로직
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=random.choice(API_KEYS))
         vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
         return vdb, None
@@ -204,18 +201,18 @@ if not vdb:
     st.stop()
 
 def get_intelligent_response(prompt_text):
-    time.sleep(1.0) 
+    time.sleep(1.0) # 자연스러운 스트리밍 효과
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
-        temperature=0.0 
+        temperature=0.0 # 정확도 최우선 세팅
     )
     for chunk in llm.stream(prompt_text):
         if chunk.content:
             yield chunk.content
 
 # ============================================================
-# 🗂️ [메인 UI] 시스템 인터페이스 배치
+# 🗂️ [메인 UI] 시스템 인터페이스 배치 (원본 그대로)
 # ============================================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
@@ -224,12 +221,14 @@ with st.sidebar:
     st.success("인증 지침서 데이터 동기화 완료")
     st.info("v2.7.0 풀버전 복구 완료")
 
+# 상단 로고 base64 처리 (원본 유지)
 logo_html = ""
 if os.path.exists("검단탑병원-로고_고화질.png"):
     with open("검단탑병원-로고_고화질.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
         logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:26px; background-color:white; padding:3px; border-radius:4px;'>"
 
+# 최상단 배너 및 모드 전환 스위치 출력
 st.markdown(f"""
 <div class='enterprise-header'>
     {logo_html}
@@ -239,55 +238,69 @@ st.markdown(f"""
 
 mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
 
+# 세션 관리
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
+# 🚨 [규칙] 출처 표시 완전 제거
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
-1. 질문에 대해 [원문 데이터]를 바탕으로 핵심 정답만 짧게 대답하십시오.
-2. 답변 끝에 [근거], [출처], 파일명 등을 표시하지 마십시오.
-3. 데이터 중 'manual2.pdf'가 있다면 이를 최우선 근거로 삼으십시오."""
+1. 질문에 대해 [원문 데이터]를 바탕으로 정답만 짧게 대답하십시오.
+2. 절대로 [근거], [출처], 파일명 등을 표시하지 마십시오. 오직 정답만 출력하십시오.
+3. 데이터 중 'manual2.pdf' 또는 '핸드북' 내용이 있다면 이를 답변의 최우선 근거로 삼으십시오."""
 
 # 🔍 모드 1: 지침서 검색
 if mode == "🔍 인증 지침서 검색":
     for m in st.session_state.search_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-# 🕵️‍♂️ 모드 2: 모의훈련
+# 🕵️‍♂️ 모드 2: 모의훈련 (지능형 질문 생성 로직 포함)
 elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
-    st.info("💡 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
+    st.info("💡 까다로운 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
     if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
         with st.chat_message("assistant"):
-            random_docs = vdb.similarity_search(random.choice(["지침", "규정", "절차"]), k=3)
+            # 데이터에서 랜덤하게 내용을 뽑아 질문 생성 소스로 활용 (원본 로직)
+            random_docs = vdb.similarity_search(random.choice(["지침", "규정", "절차", "안전", "교육"]), k=3)
             sample_ctx = "\n".join([d.page_content for d in random_docs])
-            q_stream = get_intelligent_response(f"인증평가 감독관으로서 지침서 내용을 바탕으로 짧은 규정 질문 1개를 만드세요.\n내용:\n{sample_ctx}")
+            
+            q_gen_prompt = f"인증평가 감독관으로서 아래 지침 내용을 바탕으로 구체적인 규정 질문 1개를 만드세요. 행동 말고 지식을 물으세요.\n내용:\n{sample_ctx}"
+            q_stream = get_intelligent_response(q_gen_prompt)
             st.session_state.current_q = st.write_stream(q_stream)
             st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
+            
     for m in st.session_state.train_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
-# 🚨 [공통 로직] 하단 고정 입력창 및 답변 프로세스
-if query := st.chat_input("질문하거나 답변하십시오..."):
+# 🚨 [공통 로직] 하단 고정 입력창 및 딥 검색 프로세스
+input_placeholder = "규정 질문 또는 가볍게 인사를 건네보세요..." if mode == "🔍 인증 지침서 검색" else "감독관 질문에 답변하십시오..."
+
+if query := st.chat_input(input_placeholder):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with st.chat_message("user"): st.markdown(query)
+        
         with st.chat_message("assistant"):
             try:
                 docs = vdb.similarity_search(query, k=12)
-                ctx_str = "\n\n".join([d.page_content for d in docs])
-                full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
+                context_str = "\n\n".join([d.page_content for d in docs])
+                final_prompt = f"{SYS_RULE}\n\n[원문 데이터]\n{context_str}\n\n질문: {query}"
+                full_ans = st.write_stream(get_intelligent_response(final_prompt))
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e: st.error(f"🚨 오류: {e}")
-    else:
+            except Exception as e:
+                st.error(f"🚨 답변 생성 오류: {e}")
+
+    else: # 모의훈련 답변 처리
         if st.session_state.current_q:
             st.session_state.train_msgs.append({"role": "user", "content": query})
             with st.chat_message("user"): st.markdown(query)
+            
             with st.chat_message("assistant"):
                 try:
                     docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                    ctx_str = "\n\n".join([d.page_content for d in docs])
-                    eval_prompt = f"엄격한 감독관 시선으로 답변 채점 및 보완. 출처 표시 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n참고:\n{ctx_str}"
+                    context_str = "\n\n".join([d.page_content for d in docs])
+                    eval_prompt = f"감독관으로서 사용자의 답변을 채점(100점 만점)하고 보완하세요. 절대 출처 표시 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n지침데이터:\n{context_str}"
                     full_ans = st.write_stream(get_intelligent_response(eval_prompt))
                     st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
                     st.session_state.current_q = None
-                except Exception as e: st.error(f"🚨 오류: {e}")
+                except Exception as e:
+                    st.error(f"🚨 채점 도중 오류 발생: {e}")
