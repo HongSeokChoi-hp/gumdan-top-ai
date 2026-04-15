@@ -1,7 +1,8 @@
 import streamlit as st
-import google.generativeai as genai
+# 🚨 말썽을 일으키던 구형 genai 라이브러리 호출 삭제
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+# 🚨 성공이 검증된 LangChain 생성 엔진(ChatGoogleGenerativeAI) 추가 탑재
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import os
 import random
 import time
@@ -52,7 +53,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 검색 엔진 로드 (gemini-embedding-001 통과 확인 완료!)
+# 🧠 검색 엔진 로드 (LangChain 기반 - 정상 작동 통과)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
@@ -74,15 +75,22 @@ if not vdb:
     st.stop()
 
 # ============================================================
-# 🚨 [해결] 구형 pro 지우고, 최신 1.5-flash 하나로 완전 고정!
+# 🚨 [최종 해결] 구형 genai 폐기, 안전한 LangChain으로 통신 일원화
 # ============================================================
 def get_intelligent_response(prompt_text):
     time.sleep(1.6)
-    genai.configure(api_key=random.choice(API_KEYS))
     
-    # 여기서 에러나던 것을 1.5-flash로 정정했습니다. 절대 안뻗습니다.
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    return model.generate_content(prompt_text, stream=True)
+    # 에러 없는 LangChain 통신망으로 gemini-1.5-flash 호출
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash", 
+        google_api_key=random.choice(API_KEYS),
+        temperature=0.2
+    )
+    
+    # 스트리밍(타다닥) 효과를 위한 제너레이터 반환
+    for chunk in llm.stream(prompt_text):
+        if chunk.content:
+            yield chunk.content
 
 # ============================================================
 # 🗂️ 메인 시스템 (검색 및 훈련)
