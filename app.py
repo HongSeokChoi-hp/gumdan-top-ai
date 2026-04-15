@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 상하단 고정 및 모바일 가독성 최적화 CSS (원본 그대로 유지)
+# 🎨 [디자인] 상하단 고정 및 모바일 가독성 최적화 CSS (수정 반영)
 # ============================================================
 st.markdown("""
 <style>
@@ -50,7 +50,7 @@ st.markdown("""
         margin-top: 0px !important; 
     }
 
-    /* 🚨 상단 고정 헤더 배너 디자인 */
+    /* 🚨 [수정 1] 상단 배너: 모바일에서도 한 줄로 나오도록 최적화 */
     .enterprise-header { 
         background: linear-gradient(135deg, #002b5e 0%, #005691 100%); 
         padding: 12px 18px; 
@@ -61,9 +61,23 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 12px;
+        overflow: hidden; /* 영역 밖으로 나가는 것 방지 */
     }
     .enterprise-header * { color: #ffffff !important; } 
-    .enterprise-header h1 { margin: 0; font-size: 1.25rem !important; font-weight: 800; }
+    .enterprise-header h1 { 
+        margin: 0; 
+        font-size: 1.2rem !important; /* 글자 크기 미세 조정 */
+        font-weight: 800; 
+        white-space: nowrap; /* 줄바꿈 절대 방지 */
+        letter-spacing: -0.5px; /* 자간 축소로 한 줄 확보 */
+    }
+    
+    /* 아주 작은 모바일 화면용 추가 대응 */
+    @media screen and (max-width: 400px) {
+        .enterprise-header h1 { font-size: 1.05rem !important; }
+        .enterprise-header { padding: 10px 12px; }
+    }
+
     .enterprise-header img { height: 26px !important; } 
 
     /* 상단 인터페이스 천장 영구 고정 (스티키) */
@@ -99,6 +113,7 @@ st.markdown("""
     div[data-testid="stVerticalBlockOuter"] { min-height: 100dvh; display: flex; flex-direction: column; }
     div[data-testid="stVerticalBlock"] { flex-grow: 1 !important; }
 
+    /* 🚨 [수정 2] 입력창 인터페이스: 꺾쇠([]) 기호 및 테두리 잔상 제거 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -109,14 +124,26 @@ st.markdown("""
         margin-top: auto !important;
     }
     
-    div[data-testid="stChatInput"] > div { border: 2px solid #005691 !important; border-radius: 20px !important; background-color: #ffffff !important; }
+    /* 꺾쇠의 정체인 가상 요소 제거 */
+    div[data-testid="stChatInput"] > div > div::before,
+    div[data-testid="stChatInput"] > div > div::after {
+        display: none !important;
+    }
     
-    /* 🚨 모바일 다크모드 글자색 보정 (배경 흰색 / 글자 검정 강제) */
+    div[data-testid="stChatInput"] > div { 
+        border: 2px solid #005691 !important; 
+        border-radius: 20px !important; 
+        background-color: #ffffff !important; 
+    }
+    
+    /* 모바일 다크모드 글자색 보정 및 내부 테두리 제거 */
     [data-testid="stChatInput"] div[data-baseweb="textarea"], 
     [data-testid="stChatInput"] textarea {
         background-color: #ffffff !important; 
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important; 
+        border: none !important;
+        box-shadow: none !important;
     }
 
     /* 채팅 말풍선 고급 디자인 */
@@ -131,7 +158,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 페이지 로직
+# 🔐 [인증] 로그인 페이지 로직 (원본 유지)
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -148,7 +175,7 @@ if not st.session_state.get("authenticated", False):
     st.stop()
 
 # ============================================================
-# 🧠 [엔진] 검색 엔진 로드 및 AI 답변 로직
+# 🧠 [엔진] 검색 엔진 로드 및 AI 답변 로직 (원본 유지)
 # ============================================================
 @st.cache_resource
 def load_intelligent_db():
@@ -168,18 +195,18 @@ if not vdb:
     st.stop()
 
 def get_intelligent_response(prompt_text):
-    time.sleep(1.0) # 자연스러운 스트리밍 효과
+    time.sleep(1.0) 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
-        temperature=0.0 # 정확도 최우선 세팅
+        temperature=0.0 
     )
     for chunk in llm.stream(prompt_text):
         if chunk.content:
             yield chunk.content
 
 # ============================================================
-# 🗂️ [메인 UI] 시스템 인터페이스 배치 (원본 그대로)
+# 🗂️ [메인 UI] 시스템 인터페이스 배치 (원본 유지)
 # ============================================================
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
@@ -188,14 +215,12 @@ with st.sidebar:
     st.success("인증 지침서 데이터 동기화 완료")
     st.info("v2.7.0 풀버전 복구 완료")
 
-# 상단 로고 배너 처리
 logo_html = ""
 if os.path.exists("검단탑병원-로고_고화질.png"):
     with open("검단탑병원-로고_고화질.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
         logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:26px; background-color:white; padding:3px; border-radius:4px;'>"
 
-# 최상단 배너 및 모드 전환 스위치 출력 (고정됨)
 st.markdown(f"""
 <div class='enterprise-header'>
     {logo_html}
@@ -205,17 +230,16 @@ st.markdown(f"""
 
 mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
 
-# 세션 관리
 if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 🚨 [AI 답변 가이드라인] 출처 및 근거 표시 기능 삭제
+# 🚨 [AI 답변 가이드라인] 출처 표시 기능 완전 제거
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
-1. 질문에 대해 [원문 데이터]를 90% 이상 활용하여 답변하되, 가장 핵심적이고 확률 높은 정보 위주로 짧고 간단하게 대답하십시오.
+1. 질문에 대해 [원문 데이터]를 90% 이상 활용하여 답변하되, 가장 핵심 정답 위주로 짧게 대답하십시오.
 2. 부차적인 설명은 생략하고 사용자가 바로 실무에 적용할 수 있는 정답(결론)부터 제시하십시오.
-3. 데이터 중 'manual2.pdf' 또는 '핸드북' 내용이 있다면 이를 답변의 최우선 0순위 근거로 삼으십시오.
-4. **절대로 답변 끝에 [근거], [출처], 파일명 등을 표시하지 마십시오.** 오직 정답 텍스트만 깔끔하게 출력하십시오.
+3. 데이터 중 'manual2.pdf' 또는 '핸드북' 내용이 있다면 이를 답변의 0순위 근거로 삼으십시오.
+4. **절대로 답변에 [근거], [출처], 파일명 등을 표시하지 마십시오.** 오직 정답만 출력하십시오.
 5. 데이터에 없는 내용은 절대 지어내지 마십시오."""
 
 # ------------------------------------------------------------
@@ -226,25 +250,15 @@ if mode == "🔍 인증 지침서 검색":
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
 # ------------------------------------------------------------
-# 🕵️‍♂️ 모드 2: 모의훈련 (수정 완료: 데이터 기반 질문 생성)
+# 🕵️‍♂️ 모드 2: 모의훈련 (데이터 기반 질문 생성 로직 적용)
 # ------------------------------------------------------------
 elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
     st.info("💡 까다로운 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
     if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
         with st.chat_message("assistant"):
-            # 데이터에서 랜덤 키워드로 내용을 뽑아 질문 생성 소스 확보
-            random_docs = vdb.similarity_search(random.choice(["지침", "규정", "절차", "안전", "교육"]), k=3)
+            random_docs = vdb.similarity_search(random.choice(["지침", "규정", "절차", "안전"]), k=3)
             sample_ctx = "\n".join([d.page_content for d in random_docs])
-            
-            q_gen_prompt = f"""당신은 매우 까다로운 인증평가 감독관입니다. 
-아래의 [지침 원문 데이터]를 바탕으로, 병원 직원에게 던질법한 실제 규정 질문 1개를 생성하세요.
-직원의 태도나 일반적인 대응을 묻지 말고, 지침서에 명시된 '구체적인 지식과 절차'를 물어보세요.
-질문은 짧고 날카롭게 하십시오.
-
-[지침 원문 데이터]
-{sample_ctx}"""
-            
-            q_stream = get_intelligent_response(q_gen_prompt)
+            q_stream = get_intelligent_response(f"인증평가 감독관으로서 지침서 내용을 바탕으로 실제 지식 규정을 묻는 짧은 질문 1개를 만드세요.\n내용:\n{sample_ctx}")
             st.session_state.current_q = st.write_stream(q_stream)
             st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
             
@@ -252,51 +266,31 @@ elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
 # ------------------------------------------------------------
-# 🚨 [공통 로직] 하단 고정 입력창 및 딥 검색 프로세스
+# 🚨 [공통 로직] 하단 고정 입력창 및 답변 프로세스
 # ------------------------------------------------------------
-input_placeholder = "규정 질문 또는 가볍게 인사를 건네보세요..." if mode == "🔍 인증 지침서 검색" else "감독관 질문에 답변하십시오..."
+input_placeholder = "규정 질문 또는 인사를 건네보세요..." if mode == "🔍 인증 지침서 검색" else "감독관 질문에 답변하십시오..."
 
 if query := st.chat_input(input_placeholder):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with st.chat_message("user"): st.markdown(query)
-        
         with st.chat_message("assistant"):
             try:
-                # k=12로 넉넉히 가져와서 AI가 선별하게 함
                 docs = vdb.similarity_search(query, k=12)
-                
-                # 🚨 출처 표시 제거: d.page_content만 합침
-                context_str = "\n\n".join([d.page_content for d in docs])
-                final_prompt = f"{SYS_RULE}\n\n[원문 데이터]\n{context_str}\n\n질문: {query}"
-                
-                res_stream = get_intelligent_response(final_prompt)
-                full_ans = st.write_stream(res_stream)
+                ctx_str = "\n\n".join([d.page_content for d in docs])
+                full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e:
-                st.error(f"🚨 답변 생성 오류: {e}")
-
-    else: # 모의훈련 답변 처리
+            except Exception as e: st.error(f"🚨 오류: {e}")
+    else: # 모의훈련 채점
         if st.session_state.current_q:
             st.session_state.train_msgs.append({"role": "user", "content": query})
             with st.chat_message("user"): st.markdown(query)
-            
             with st.chat_message("assistant"):
                 try:
                     docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                    context_str = "\n\n".join([d.page_content for d in docs])
-                    
-                    # 훈련 채점 시에도 출처 표시 금지
-                    eval_prompt = f"""당신은 엄격한 인증평가 감독관입니다. 사용자의 답변을 지침서 데이터와 비교하여 채점(100점 만점)하고 날카롭게 보완하세요.
-절대로 답변에 출처나 파일명을 명시하지 말고 보완점만 짧게 대답하세요.
-
-질문: {st.session_state.current_q}
-사용자 답변: {query}
-지침서 참고데이터:
-{context_str}"""
-                    res_stream = get_intelligent_response(eval_prompt)
-                    full_ans = st.write_stream(res_stream)
+                    ctx_str = "\n\n".join([d.page_content for d in docs])
+                    eval_prompt = f"엄격한 감독관으로서 사용자의 답변을 지침서와 비교해 채점하고 보완하세요. 출처 표시 절대 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n참고:\n{ctx_str}"
+                    full_ans = st.write_stream(get_intelligent_response(eval_prompt))
                     st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
                     st.session_state.current_q = None
-                except Exception as e:
-                    st.error(f"🚨 채점 도중 오류 발생: {e}")
+                except Exception as e: st.error(f"🚨 오류: {e}")
