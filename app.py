@@ -7,7 +7,7 @@ import time
 import base64
 
 # ============================================================
-# 🔑 [보안] Streamlit Secrets 및 API 키 연동 (원본 로직)
+# 🔑 [보안] Streamlit Secrets 및 API 키 연동
 # ============================================================
 try:
     # 여러 개의 API 키 중 랜덤 선택하여 부하 분산
@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 글씨 복구 + 화살표 버튼 추가 + 하단 여백 최적화 CSS
+# 🎨 [디자인] CSS 스타일링
 # ============================================================
 st.markdown("""
 <style>
@@ -99,7 +99,7 @@ st.markdown("""
         gap: 10px;
     }
 
-    /* 🚨 [최종 보정] 채팅창 글씨 색상 + 화살표 버튼 복구 */
+    /* 채팅 입력창 디자인 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -108,7 +108,6 @@ st.markdown("""
         z-index: 1001 !important; 
     }
 
-    /* 입력창 본체 (하얀 배경만 유지) */
     div[data-testid="stChatInput"] > div { 
         background-color: #ffffff !important; 
         border: 2px solid #005691 !important; 
@@ -117,7 +116,6 @@ st.markdown("""
         overflow: hidden !important;
     }
 
-    /* 텍스트 입력 영역 (글자색 진하게 복구) */
     div[data-testid="stChatInput"] textarea {
         color: #111827 !important; 
         -webkit-text-fill-color: #111827 !important; 
@@ -125,9 +123,8 @@ st.markdown("""
         padding: 12px 15px !important;
     }
 
-    /* 화살표 전송 버튼 복구 및 디자인 강화 */
     div[data-testid="stChatInput"] button {
-        background-color: #005691 !important; /* 병원 메인 컬러 버튼 */
+        background-color: #005691 !important; 
         color: white !important;
         border-radius: 50% !important;
         padding: 5px !important;
@@ -139,7 +136,6 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* 버튼 내부 SVG 아이콘 가시화 */
     div[data-testid="stChatInput"] svg {
         fill: white !important;
         width: 20px !important;
@@ -242,11 +238,13 @@ elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
     st.info("💡 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
     if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
         with st.chat_message("assistant"):
-            random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
-            sample_ctx = "\n".join([d.page_content for d in random_docs])
-            q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
-            st.session_state.current_q = st.write_stream(q_stream)
-            st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
+            # ✅ 스피너 추가 1: 질문 생성 중
+            with st.spinner("💭 감독관이 질문을 생성하고 있습니다..."):
+                random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
+                sample_ctx = "\n".join([d.page_content for d in random_docs])
+                q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
+                st.session_state.current_q = st.write_stream(q_stream)
+                st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
     for m in st.session_state.train_msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
 
@@ -256,21 +254,25 @@ if query := st.chat_input("질문하거나 답변하십시오..."):
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with st.chat_message("user"): st.markdown(query)
         with st.chat_message("assistant"):
-            try:
-                docs = vdb.similarity_search(query, k=12)
-                ctx_str = "\n\n".join([d.page_content for d in docs])
-                full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
-                st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e: st.error(f"🚨 오류: {e}")
+            # ✅ 스피너 추가 2: 지침서 검색 중
+            with st.spinner("💭 지침서를 분석하며 생각중..."):
+                try:
+                    docs = vdb.similarity_search(query, k=12)
+                    ctx_str = "\n\n".join([d.page_content for d in docs])
+                    full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
+                    st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
+                except Exception as e: st.error(f"🚨 오류: {e}")
     else:
         if st.session_state.current_q:
             st.session_state.train_msgs.append({"role": "user", "content": query})
             with st.chat_message("user"): st.markdown(query)
             with st.chat_message("assistant"):
-                try:
-                    docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                    ctx_str = "\n\n".join([d.page_content for d in docs])
-                    full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
-                    st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
-                    st.session_state.current_q = None
-                except Exception as e: st.error(f"🚨 오류: {e}")
+                # ✅ 스피너 추가 3: 감독관 채점 중
+                with st.spinner("💭 답변을 기반으로 채점중..."):
+                    try:
+                        docs = vdb.similarity_search(st.session_state.current_q, k=8)
+                        ctx_str = "\n\n".join([d.page_content for d in docs])
+                        full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
+                        st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
+                        st.session_state.current_q = None
+                    except Exception as e: st.error(f"🚨 오류: {e}")
