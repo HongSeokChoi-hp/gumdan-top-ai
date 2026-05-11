@@ -6,20 +6,17 @@ import random
 import time
 import base64
 
-# ================= ===========================================
-# 🔑 [보안] Streamlit Secrets 및 API 키 연동 (원본 로직)
+# ============================================================
+# 🔑 [보안] Streamlit Secrets 및 API 키 연동
 # ============================================================
 try:
-    # 여러 개의 API 키 중 랜덤 선택하여 부하 분산
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
 except Exception:
     st.error("🚨 Streamlit Secrets에서 API 키를 찾을 수 없습니다. 설정 확인이 필요합니다.")
     st.stop()
 
-# 시스템 보안 코드 (기획자 설정)
 SET_PASSWORD = "0366" 
 
-# 페이지 전체 설정
 st.set_page_config(
     page_title="검단탑병원 인증조사 AI 도우미", 
     page_icon="🏅", 
@@ -28,7 +25,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] 대시보드 스타일 대폭 수정 및 채팅창 보정 CSS
+# 🎨 [디자인] 대시보드 스타일 CSS
 # ============================================================
 st.markdown("""
 <style>
@@ -65,13 +62,13 @@ st.markdown("""
         margin: 0; 
         font-size: 1.5rem !important; 
         font-weight: 800; 
-        color: #003366 !important; /* 병원 메인 남색 */
+        color: #003366 !important; 
         white-space: nowrap !important; 
         letter-spacing: -1px !important; 
         flex-shrink: 0;
     }
 
-    /* 사이드바 스타일 수정 */
+    /* 사이드바 스타일 */
     [data-testid="stSidebar"] {
         background-color: #F8FAFC !important;
         border-right: 1px solid #e2e8f0;
@@ -80,14 +77,14 @@ st.markdown("""
         color: #111827 !important;
     }
 
-    /* 중앙 콘텐츠 영역: Columns 활용 */
+    /* 중앙 콘텐츠 영역 */
     .main-content {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 20px;
     }
 
-    /* 환영 섹션 (Placeholder 로봇 대신 로고 활용) */
+    /* 환영 섹션 */
     .welcome-section {
         background-color: white !important;
         padding: 20px;
@@ -115,19 +112,14 @@ st.markdown("""
         border-radius: 10px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         text-align: left;
-        transition: box-shadow 0.2s ease;
-        text-decoration: none !important;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
-    .grid-card:hover {
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
     .grid-card-icon {
         font-size: 2rem;
         margin-bottom: 10px;
-        color: #005691 !important; /* 병원 메인 파란색 */
+        color: #005691 !important; 
     }
     .grid-card-title {
         font-weight: 700;
@@ -154,7 +146,7 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #111827 !important; }
     .answer-structure-content { color: #6b7280 !important; font-size: 0.9rem; margin-top: 5px;}
 
-    /* 🚨 [최종 보정] 채팅창 글씨 색상 + 화살표 버튼 색상 수정 */
+    /* 채팅창 디자인 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -162,8 +154,6 @@ st.markdown("""
         background-color: transparent !important; 
         z-index: 1001 !important; 
     }
-
-    /* 입력창 본체 (하얀 배경만 유지) */
     div[data-testid="stChatInput"] > div { 
         background-color: #ffffff !important; 
         border: 2px solid #005691 !important; 
@@ -172,8 +162,6 @@ st.markdown("""
         overflow: hidden !important;
         box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
-
-    /* 텍스트 입력 영역 (글자색 진하게 복구) */
     div[data-testid="stChatInput"] textarea {
         color: #111827 !important; 
         -webkit-text-fill-color: #111827 !important; 
@@ -181,10 +169,8 @@ st.markdown("""
         padding: 12px 15px !important;
         font-size: 1rem !important;
     }
-
-    /* 화살표 전송 버튼 색상 수정: 병원 메인 파란색 */
     div[data-testid="stChatInput"] button {
-        background-color: #005691 !important; /* 병원 메인 파란색 버튼 */
+        background-color: #005691 !important; 
         color: white !important;
         border-radius: 50% !important;
         padding: 5px !important;
@@ -195,15 +181,11 @@ st.markdown("""
         visibility: visible !important;
         opacity: 1 !important;
     }
-    
-    /* 버튼 내부 SVG 아이콘 가시화 */
     div[data-testid="stChatInput"] svg {
         fill: white !important;
         width: 20px !important;
         height: 20px !important;
     }
-
-    /* 채팅 메시지 말풍선 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
@@ -215,14 +197,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 로직 (원본 유지)
+# 🔐 [인증] 로그인 로직
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         if os.path.exists("검단탑병원-로고_고화질.png"): 
             st.image("검단탑병원-로고_고화질.png", use_container_width=True)
-        st.markdown("<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>인증조사 AI 전문가 시스템</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>인증조사 AI 도우미 시스템</h3>", unsafe_allow_html=True)
         pwd = st.text_input("보안 코드 입력", type="password", placeholder="코드를 입력하세요", label_visibility="collapsed")
         if pwd == SET_PASSWORD: 
             st.session_state.authenticated = True
@@ -231,7 +213,7 @@ if not st.session_state.get("authenticated", False):
             st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
-# 🧠 [엔진] DB 로드 (원본 유지)
+# 🧠 [엔진] DB 로드
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
@@ -260,7 +242,7 @@ def get_intelligent_response(prompt_text):
         if chunk.content:
             yield chunk.content
 
-# 🗂️ [메인 UI] 대폭 수정
+# 🗂️ [메인 UI]
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
         st.image("검단탑병원-로고_고화질.png")
@@ -285,7 +267,7 @@ if os.path.exists("검단탑병원-로고_고화질.png"):
         encoded_string = base64.b64encode(image_file.read()).decode()
         logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:40px; background-color:white; padding:3px; border-radius:4px;'>"
 
-# 상단 대시보드 헤더
+# 상단 헤더
 st.markdown(f"""
 <div class='dashboard-header'>
     {logo_html}
@@ -293,14 +275,11 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 메인 콘텐츠 레이아웃: 스트림릿의 Columns 기능을 활용
 main_col, answer_col = st.columns([2.2, 1])
 
 with main_col:
-    # 🔍 모드 전환 스위치 (알약 모양 흉내)
     mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
 
-    # 환영 섹션 (로봇 이미지 대신 병원 로고 활용)
     st.markdown(f"""
     <div class='welcome-section'>
         {logo_html}
@@ -311,7 +290,6 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    # 그리드 카드 섹션
     st.markdown(f"""
     <div class='grid-section'>
         <div class='grid-card'>
@@ -347,7 +325,6 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    # 추천 질문 (간단하게 텍스트로)
     st.markdown("---")
     st.markdown("### 💡 추천 질문")
     st.markdown("- 낙상 발생 시 보고 절차는 어떻게 되나요?")
@@ -358,28 +335,38 @@ with main_col:
     if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
     if "current_q" not in st.session_state: st.session_state.current_q = None
 
-    SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 출처 표시 없이 정답만 짧게 대답하십시오."""
+    # 🚨 [핵심 변경] AI 답변 구조 강제 프롬프트
+    SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
+    사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
-    # 🔍 모드 1: 지침서 검색
+    ### 💡 답변 요약
+    (질문에 대한 핵심 내용을 2~3줄로 명확하게 요약)
+
+    ### ⚖️ 근거
+    (답변의 근거가 되는 지침서 항목, 절차서 번호, 또는 인증기준을 불릿 기호(•)를 사용하여 나열)
+
+    ### 📂 예상 확인자료
+    (현장 평가 시 확인하거나 준비해야 할 관련 기록지, 보고서, 체크리스트 등을 불릿 기호(•)를 사용하여 나열)
+    """
+
     if mode == "🔍 인증 지침서 검색":
         for m in st.session_state.search_msgs:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
-    # 🕵️‍♂️ 모드 2: 모의훈련 (원본 로직 유지)
     elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
         st.info("💡 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
         if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
             with st.chat_message("assistant"):
-                random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
-                sample_ctx = "\n".join([d.page_content for d in random_docs])
-                q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
-                st.session_state.current_q = st.write_stream(q_stream)
-                st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
+                with st.spinner("💭 감독관이 질문을 생성하고 있습니다..."):
+                    random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
+                    sample_ctx = "\n".join([d.page_content for d in random_docs])
+                    q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
+                    st.session_state.current_q = st.write_stream(q_stream)
+                    st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
         for m in st.session_state.train_msgs:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
 with answer_col:
-    # 오른쪽 답변 구조 예시 섹션
     st.markdown(f"""
     <div class='answer-structure'>
         <h3>🌟 AI 답변 구조 예시</h3>
@@ -400,27 +387,30 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 🚨 하단 입력창 답변 프로세스 (디자인 보정 반영)
+# 🚨 하단 입력창 답변 프로세스
 if query := st.chat_input("질문하거나 답변하십시오..."):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with st.chat_message("user"): st.markdown(query)
         with st.chat_message("assistant"):
-            try:
-                docs = vdb.similarity_search(query, k=12)
-                ctx_str = "\n\n".join([d.page_content for d in docs])
-                full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
-                st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e: st.error(f"🚨 오류: {e}")
+            with st.spinner("💭 지침서를 분석하며 생각중..."):
+                try:
+                    docs = vdb.similarity_search(query, k=12)
+                    ctx_str = "\n\n".join([d.page_content for d in docs])
+                    # 시스템 룰(SYS_RULE)이 적용되어 3단 구조로 답변을 생성합니다.
+                    full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
+                    st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
+                except Exception as e: st.error(f"🚨 오류: {e}")
     else:
         if st.session_state.current_q:
             st.session_state.train_msgs.append({"role": "user", "content": query})
             with st.chat_message("user"): st.markdown(query)
             with st.chat_message("assistant"):
-                try:
-                    docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                    ctx_str = "\n\n".join([d.page_content for d in docs])
-                    full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
-                    st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
-                    st.session_state.current_q = None
-                except Exception as e: st.error(f"🚨 오류: {e}")
+                with st.spinner("💭 답변을 기반으로 채점중..."):
+                    try:
+                        docs = vdb.similarity_search(st.session_state.current_q, k=8)
+                        ctx_str = "\n\n".join([d.page_content for d in docs])
+                        full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
+                        st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
+                        st.session_state.current_q = None
+                    except Exception as e: st.error(f"🚨 오류: {e}")
