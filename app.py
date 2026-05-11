@@ -6,577 +6,239 @@ import random
 import time
 import base64
 
-# ============================================================
-# 🔑 [보안] Streamlit Secrets 및 API 키 연동
+# ================= ===========================================
+# 🔑 [보안] Streamlit Secrets 및 API 키 연동 (원본 로직)
 # ============================================================
 try:
+    # 여러 개의 API 키 중 랜덤 선택하여 부하 분산
     API_KEYS = list(st.secrets["GOOGLE_API_KEYS"])
 except Exception:
     st.error("🚨 Streamlit Secrets에서 API 키를 찾을 수 없습니다. 설정 확인이 필요합니다.")
     st.stop()
 
-SET_PASSWORD = "0366"
+# 시스템 보안 코드 (기획자 설정)
+SET_PASSWORD = "0366" 
 
+# 페이지 전체 설정
 st.set_page_config(
-    page_title="검단탑병원 인증조사 AI 전문가",
-    page_icon="🏅",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="검단탑병원 인증조사 AI 도우미", 
+    page_icon="🏅", 
+    layout="wide", 
+    initial_sidebar_state="auto"
 )
 
 # ============================================================
-# 🎨 CSS
+# 🎨 [디자인] 대시보드 스타일 대폭 수정 및 채팅창 보정 CSS
 # ============================================================
 st.markdown("""
 <style>
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-
-html, body, .stApp {
-    background: #F5F8FC !important;
-    font-family: 'Pretendard', sans-serif !important;
-}
-
-body, p, span, div, li, h1, h2, h3, h4, h5, h6, button, input, textarea {
-    font-family: 'Pretendard', sans-serif !important;
-}
-
-[data-testid="stHeader"] {
-    display: none !important;
-}
-
-#creatorBadge,
-.viewerBadge_container__1QSob,
-.stDeployButton,
-footer {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-.block-container {
-    padding-top: 0rem !important;
-    padding-bottom: 0rem !important;
-    max-width: 100% !important;
-}
-
-/* Streamlit 기본 아이콘 깨짐 방지 */
-[data-testid="stChatMessageAvatarUser"],
-[data-testid="stChatMessageAvatarAssistant"],
-[data-testid="stChatMessageAvatarIcon"],
-[data-testid="stChatMessageAvatarIcon"] * {
-    font-family: "Material Symbols Rounded", "Material Symbols Outlined", sans-serif !important;
-}
-
-/* 사이드바 */
-[data-testid="stSidebar"] {
-    background: #FFFFFF !important;
-    border-right: 1px solid #DCE7F3 !important;
-    box-shadow: 8px 0 24px rgba(15,45,80,0.03);
-}
-
-[data-testid="stSidebar"] > div {
-    padding-top: 1.2rem !important;
-}
-
-.sidebar-box {
-    background: linear-gradient(135deg, #F8FBFF 0%, #F0FFFC 100%);
-    border: 1px solid #DCE7F3;
-    border-radius: 18px;
-    padding: 15px;
-    margin-top: 12px;
-    box-shadow: 0 4px 14px rgba(15,45,80,0.06);
-}
-
-.sidebar-title {
-    font-size: 0.95rem;
-    font-weight: 900;
-    color: #002B5E;
-    margin-bottom: 8px;
-}
-
-.sidebar-text {
-    font-size: 0.82rem;
-    color: #526174;
-    line-height: 1.55;
-}
-
-/* 헤더 */
-.enterprise-header {
-    width: 100%;
-    min-height: 76px;
-    background:
-        radial-gradient(circle at 10% 20%, rgba(17,175,166,0.22), transparent 25%),
-        linear-gradient(135deg, #002B5E 0%, #004C86 48%, #0068A8 100%);
-    border-radius: 0 0 22px 22px;
-    padding: 14px 24px;
-    margin: 0 0 14px 0;
-    box-shadow: 0 12px 26px rgba(0,45,94,0.18);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    overflow: hidden;
-    position: relative;
-}
-
-.enterprise-header::after {
-    content: "";
-    position: absolute;
-    right: -90px;
-    top: -120px;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.09);
-}
-
-.enterprise-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-    position: relative;
-    z-index: 2;
-}
-
-.enterprise-logo-box {
-    width: 50px;
-    height: 50px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.96);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
-    overflow: hidden;
-}
-
-.enterprise-logo-box img {
-    max-width: 42px !important;
-    max-height: 42px !important;
-    object-fit: contain !important;
-}
-
-.enterprise-title-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-.enterprise-eyebrow {
-    color: rgba(255,255,255,0.78) !important;
-    font-size: 0.78rem;
-    font-weight: 700;
-}
-
-.enterprise-title {
-    color: #FFFFFF !important;
-    margin: 0;
-    font-size: clamp(1.05rem, 2.1vw, 1.65rem) !important;
-    font-weight: 900;
-    letter-spacing: -1.2px;
-    white-space: nowrap;
-}
-
-.enterprise-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: relative;
-    z-index: 2;
-}
-
-.ai-badge,
-.user-badge {
-    color: #FFFFFF !important;
-    border: 1px solid rgba(255,255,255,0.28);
-    background: rgba(255,255,255,0.12);
-    border-radius: 999px;
-    padding: 8px 13px;
-    font-size: 0.84rem;
-    font-weight: 800;
-}
-
-/* 상단 탭 */
-.mode-strip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #E8EEF5;
-    border-radius: 999px;
-    padding: 5px;
-    margin: 0 0 10px 0;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
-}
-
-.mode-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    border-radius: 999px;
-    padding: 9px 15px;
-    font-size: 0.92rem;
-    font-weight: 900;
-    color: #4B5E73 !important;
-}
-
-.mode-pill.active {
-    background: #FFFFFF;
-    color: #0068C9 !important;
-    box-shadow: 0 5px 14px rgba(0,70,130,0.10);
-    border: 1px solid rgba(0,104,201,0.18);
-}
-
-/* 히어로 */
-.hero-card {
-    background:
-        radial-gradient(circle at 12% 30%, rgba(15,175,166,0.13), transparent 24%),
-        linear-gradient(135deg, #FFFFFF 0%, #F1FBFF 56%, #F0FFFC 100%);
-    border: 1px solid rgba(15,175,166,0.22);
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15,45,80,0.08);
-    padding: 26px 28px;
-    min-height: 214px;
-    display: flex;
-    align-items: center;
-    gap: 26px;
-    position: relative;
-    overflow: hidden;
-}
-
-.hero-card::after {
-    content: "";
-    position: absolute;
-    right: -70px;
-    bottom: -90px;
-    width: 230px;
-    height: 230px;
-    border-radius: 50%;
-    background: rgba(0,104,201,0.06);
-}
-
-.robot-box {
-    width: 148px;
-    height: 148px;
-    border-radius: 36px;
-    background: linear-gradient(180deg, #FFFFFF 0%, #EAF8FF 100%);
-    border: 1px solid rgba(0,104,201,0.12);
-    box-shadow: 0 16px 30px rgba(0,104,201,0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 2;
-}
-
-.robot-face {
-    width: 92px;
-    height: 70px;
-    border-radius: 28px;
-    background: linear-gradient(135deg, #063A5B 0%, #082E4C 100%);
-    position: relative;
-}
-
-.robot-face::before {
-    content: "◠  ◠";
-    position: absolute;
-    color: #31E6DF;
-    font-size: 28px;
-    font-weight: 900;
-    left: 22px;
-    top: 14px;
-    letter-spacing: 7px;
-}
-
-.robot-face::after {
-    content: "✚";
-    position: absolute;
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #0FAFA6 0%, #16C7B7 100%);
-    color: white;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    left: 29px;
-    bottom: -48px;
-    box-shadow: 0 8px 16px rgba(15,175,166,0.22);
-}
-
-.hero-content {
-    flex: 1;
-    position: relative;
-    z-index: 2;
-}
-
-.hero-kicker {
-    display: inline-flex;
-    color: #0068C9;
-    background: #EAF4FF;
-    border: 1px solid rgba(0,104,201,0.16);
-    border-radius: 999px;
-    padding: 7px 11px;
-    font-size: 0.82rem;
-    font-weight: 900;
-    margin-bottom: 12px;
-}
-
-.hero-title {
-    font-size: clamp(1.35rem, 2.3vw, 2rem);
-    line-height: 1.25;
-    letter-spacing: -1.2px;
-    margin: 0 0 10px 0;
-    font-weight: 900;
-    color: #0F1F35;
-}
-
-.hero-title b {
-    color: #0FAFA6;
-}
-
-.hero-desc {
-    color: #526174;
-    font-size: 0.98rem;
-    line-height: 1.7;
-    margin-bottom: 17px;
-    font-weight: 600;
-}
-
-.start-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    background: linear-gradient(135deg, #008B83 0%, #0FAFA6 100%);
-    color: #FFFFFF;
-    padding: 13px 20px;
-    border-radius: 16px;
-    font-weight: 900;
-    box-shadow: 0 12px 22px rgba(15,175,166,0.22);
-}
-
-/* Streamlit 버튼을 카드처럼 */
-div[data-testid="stButton"] > button {
-    width: 100%;
-    min-height: 92px;
-    background: #FFFFFF !important;
-    border: 1px solid #E0EAF5 !important;
-    border-radius: 20px !important;
-    box-shadow: 0 4px 14px rgba(15,45,80,0.06) !important;
-    color: #002B5E !important;
-    font-weight: 900 !important;
-    font-size: 0.96rem !important;
-    text-align: left !important;
-    padding: 18px 20px !important;
-    transition: 0.15s ease-in-out !important;
-}
-
-div[data-testid="stButton"] > button:hover {
-    border-color: #0FAFA6 !important;
-    box-shadow: 0 8px 22px rgba(15,175,166,0.14) !important;
-    transform: translateY(-1px);
-}
-
-.recommend-box {
-    background: #FFFFFF;
-    border: 1px solid #E0EAF5;
-    border-radius: 18px;
-    box-shadow: 0 4px 14px rgba(15,45,80,0.06);
-    padding: 13px 16px;
-    margin-top: 10px;
-    margin-bottom: 14px;
-    color: #2468B2;
-    font-size: 0.88rem;
-    font-weight: 800;
-}
-
-/* 오른쪽 예시 패널 */
-.example-panel {
-    background: rgba(255,255,255,0.92);
-    border: 1px solid #DCE7F3;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(15,45,80,0.08);
-    padding: 19px;
-}
-
-.example-title {
-    font-weight: 900;
-    color: #0068C9;
-    font-size: 1.08rem;
-    margin-bottom: 14px;
-}
-
-.example-card {
-    background: #FFFFFF;
-    border: 1px solid #E2ECF6;
-    border-radius: 18px;
-    padding: 15px;
-    margin-bottom: 12px;
-    box-shadow: 0 3px 12px rgba(15,45,80,0.04);
-}
-
-.example-card-title {
-    color: #0068C9;
-    font-size: 0.94rem;
-    font-weight: 900;
-    margin-bottom: 8px;
-}
-
-.example-card-text {
-    color: #405166;
-    font-size: 0.84rem;
-    line-height: 1.62;
-    font-weight: 600;
-}
-
-.info-note {
-    background: #EAF4FF;
-    border: 1px solid rgba(0,104,201,0.12);
-    border-radius: 14px;
-    padding: 10px 12px;
-    color: #31608F;
-    font-size: 0.78rem;
-    line-height: 1.55;
-    font-weight: 700;
-}
-
-/* 채팅 입력창 */
-div[data-testid="stChatInput"] {
-    position: sticky !important;
-    bottom: 0 !important;
-    padding: 10px 0 25px 0 !important;
-    background: linear-gradient(180deg, rgba(245,248,252,0) 0%, rgba(245,248,252,0.96) 35%, rgba(245,248,252,1) 100%) !important;
-    z-index: 1001 !important;
-}
-
-div[data-testid="stChatInput"] > div {
-    background-color: #FFFFFF !important;
-    border: 1.8px solid #0B7FEA !important;
-    border-radius: 18px !important;
-    margin: 0 6px !important;
-    overflow: hidden !important;
-    box-shadow: 0 12px 26px rgba(0,104,201,0.11) !important;
-}
-
-div[data-testid="stChatInput"] textarea {
-    color: #111827 !important;
-    -webkit-text-fill-color: #111827 !important;
-    background-color: #FFFFFF !important;
-    padding: 14px 16px !important;
-    font-weight: 600 !important;
-}
-
-div[data-testid="stChatInput"] button {
-    background: linear-gradient(135deg, #005691 0%, #0B7FEA 100%) !important;
-    color: white !important;
-    border-radius: 50% !important;
-    margin-right: 10px !important;
-    box-shadow: 0 6px 16px rgba(0,104,201,0.24) !important;
-}
-
-div[data-testid="stChatInput"] svg {
-    fill: white !important;
-}
-
-/* 채팅 메시지 */
-[data-testid="stChatMessage"] {
-    background-color: #FFFFFF !important;
-    border-radius: 18px !important;
-    padding: 16px 20px !important;
-    box-shadow: 0 4px 14px rgba(15,45,80,0.06) !important;
-    margin-bottom: 12px !important;
-    border: 1px solid #E0EAF5 !important;
-}
-
-[data-testid="stChatMessage"] p,
-[data-testid="stMarkdownContainer"] p,
-[data-testid="stMarkdownContainer"] li {
-    line-height: 1.72 !important;
-    font-size: 0.98rem !important;
-}
-
-.stAlert {
-    border-radius: 16px !important;
-}
-
-@media (max-width: 1100px) {
-    .enterprise-right {
-        display: none;
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
+    
+    .stApp { background-color: #F8FAFC !important; }
+    p, span, div, li, h1, h2, h3, h4 { color: #111827 !important; }
+    
+    [data-testid="stHeader"] { display: none !important; height: 0px !important; }
+    #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
+    
+    .block-container { 
+        padding-top: 1rem !important; 
+        padding-bottom: 0rem !important; 
+        margin-top: 0px !important; 
     }
 
-    .hero-card {
+    /* 상단 헤더/배너 */
+    .dashboard-header { 
+        background-color: white !important; 
+        padding: 15px 25px; 
+        border-radius: 10px; 
+        margin-bottom: 20px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        width: 100%;
+        overflow: hidden;
+    }
+    .dashboard-header img { height: 40px !important; flex-shrink: 0; } 
+    .dashboard-header h1 { 
+        margin: 0; 
+        font-size: 1.5rem !important; 
+        font-weight: 800; 
+        color: #003366 !important; /* 병원 메인 남색 */
+        white-space: nowrap !important; 
+        letter-spacing: -1px !important; 
+        flex-shrink: 0;
+    }
+
+    /* 사이드바 스타일 수정 */
+    [data-testid="stSidebar"] {
+        background-color: #F8FAFC !important;
+        border-right: 1px solid #e2e8f0;
+    }
+    [data-testid="stSidebar"] .stMarkdown h3 {
+        color: #111827 !important;
+    }
+
+    /* 중앙 콘텐츠 영역: Columns 활용 */
+    .main-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+    }
+
+    /* 환영 섹션 (Placeholder 로봇 대신 로고 활용) */
+    .welcome-section {
+        background-color: white !important;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .welcome-section img { height: 80px !important; }
+    .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; }
+    .welcome-section p { color: #6b7280 !important; margin: 0; }
+
+    /* 그리드 카드 섹션 */
+    .grid-section {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .grid-card {
+        background-color: white !important;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        text-align: left;
+        transition: box-shadow 0.2s ease;
+        text-decoration: none !important;
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        justify-content: space-between;
+    }
+    .grid-card:hover {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .grid-card-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: #005691 !important; /* 병원 메인 파란색 */
+    }
+    .grid-card-title {
+        font-weight: 700;
+        color: #111827 !important;
+        margin-bottom: 5px;
+        font-size: 1rem;
+    }
+    .grid-card-desc {
+        color: #6b7280 !important;
+        font-size: 0.9rem;
     }
 
-    .example-panel {
-        display: none;
+    /* 오른쪽 답변 구조 예시 섹션 */
+    .answer-structure {
+        background-color: white !important;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
-}
+    .answer-structure h3 { color: #111827 !important; margin: 0 0 15px 0; font-size: 1.1rem; }
+    .answer-structure ul { list-style: none; padding: 0; margin: 0; }
+    .answer-structure li { margin-bottom: 15px; }
+    .answer-structure-icon { color: #005691 !important; margin-right: 10px; font-size: 1.2rem; }
+    .answer-structure-title { font-weight: 700; color: #111827 !important; }
+    .answer-structure-content { color: #6b7280 !important; font-size: 0.9rem; margin-top: 5px;}
+
+    /* 🚨 [최종 보정] 채팅창 글씨 색상 + 화살표 버튼 색상 수정 */
+    div[data-testid="stChatInput"] { 
+        position: sticky !important; 
+        bottom: 0 !important; 
+        padding: 10px 0 25px 0 !important; 
+        background-color: transparent !important; 
+        z-index: 1001 !important; 
+    }
+
+    /* 입력창 본체 (하얀 배경만 유지) */
+    div[data-testid="stChatInput"] > div { 
+        background-color: #ffffff !important; 
+        border: 2px solid #005691 !important; 
+        border-radius: 20px !important; 
+        margin: 0 10px !important;
+        overflow: hidden !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* 텍스트 입력 영역 (글자색 진하게 복구) */
+    div[data-testid="stChatInput"] textarea {
+        color: #111827 !important; 
+        -webkit-text-fill-color: #111827 !important; 
+        background-color: #ffffff !important;
+        padding: 12px 15px !important;
+        font-size: 1rem !important;
+    }
+
+    /* 화살표 전송 버튼 색상 수정: 병원 메인 파란색 */
+    div[data-testid="stChatInput"] button {
+        background-color: #005691 !important; /* 병원 메인 파란색 버튼 */
+        color: white !important;
+        border-radius: 50% !important;
+        padding: 5px !important;
+        margin-right: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* 버튼 내부 SVG 아이콘 가시화 */
+    div[data-testid="stChatInput"] svg {
+        fill: white !important;
+        width: 20px !important;
+        height: 20px !important;
+    }
+
+    /* 채팅 메시지 말풍선 */
+    [data-testid="stChatMessage"] { 
+        background-color: #ffffff; 
+        border-radius: 12px; 
+        padding: 15px 20px; 
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05); 
+        margin-bottom: 12px; 
+        border: 1px solid #e2e8f0; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# 🔐 로그인
-# ============================================================
+# 🔐 [인증] 로그인 로직 (원본 유지)
 if not st.session_state.get("authenticated", False):
-    st.write("<br><br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.05, 1])
+    st.write("<br><br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown("""
-        <div style="
-            background:rgba(255,255,255,0.94);
-            border:1px solid #DCE7F3;
-            border-radius:26px;
-            padding:34px 30px 30px 30px;
-            box-shadow:0 10px 30px rgba(15,45,80,0.08);
-        ">
-        """, unsafe_allow_html=True)
-
-        if os.path.exists("검단탑병원-로고_고화질.png"):
+        if os.path.exists("검단탑병원-로고_고화질.png"): 
             st.image("검단탑병원-로고_고화질.png", use_container_width=True)
-
-        st.markdown("""
-            <div style="text-align:center;color:#002B5E;font-weight:900;font-size:1.35rem;margin-top:8px;margin-bottom:8px;">
-                인증조사 AI 전문가 시스템
-            </div>
-            <div style="text-align:center;color:#526174;font-size:0.92rem;margin-bottom:22px;line-height:1.6;">
-                검단탑병원 5주기 인증조사 대비<br>
-                지침서 기반 AI 질의응답 시스템입니다.
-            </div>
-        """, unsafe_allow_html=True)
-
-        pwd = st.text_input("보안 코드 입력", type="password", placeholder="보안 코드를 입력하세요", label_visibility="collapsed")
-
-        if pwd == SET_PASSWORD:
+        st.markdown("<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>인증조사 AI 전문가 시스템</h3>", unsafe_allow_html=True)
+        pwd = st.text_input("보안 코드 입력", type="password", placeholder="코드를 입력하세요", label_visibility="collapsed")
+        if pwd == SET_PASSWORD: 
             st.session_state.authenticated = True
             st.rerun()
-        elif pwd:
+        elif pwd: 
             st.error("❌ 보안 코드가 일치하지 않습니다.")
-
-        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ============================================================
-# 🧠 DB 로드
-# ============================================================
+# 🧠 [엔진] DB 로드 (원본 유지)
 @st.cache_resource
 def load_intelligent_db():
-    if not os.path.exists("faiss_index_saved"):
+    if not os.path.exists("faiss_index_saved"): 
         return None, "faiss_index_saved 데이터가 없습니다."
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001",
-            google_api_key=random.choice(API_KEYS)
-        )
-        vdb = FAISS.load_local(
-            "faiss_index_saved",
-            embeddings,
-            allow_dangerous_deserialization=True
-        )
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=random.choice(API_KEYS))
+        vdb = FAISS.load_local("faiss_index_saved", embeddings, allow_dangerous_deserialization=True)
         return vdb, None
     except Exception as e:
         return None, f"데이터베이스 로드 실패: {e}"
@@ -588,260 +250,177 @@ if not vdb:
     st.stop()
 
 def get_intelligent_response(prompt_text):
-    time.sleep(1.0)
+    time.sleep(1.0) 
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model="gemini-2.5-flash", 
         google_api_key=random.choice(API_KEYS),
-        temperature=0.0
+        temperature=0.0 
     )
     for chunk in llm.stream(prompt_text):
         if chunk.content:
             yield chunk.content
 
-# ============================================================
-# 📌 세션
-# ============================================================
-if "search_msgs" not in st.session_state:
-    st.session_state.search_msgs = []
-
-if "queued_query" not in st.session_state:
-    st.session_state.queued_query = None
-
-SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 출처 표시 없이 정답만 짧게 대답하십시오."""
-
-# ============================================================
-# 📌 사이드바
-# ============================================================
+# 🗂️ [메인 UI] 대폭 수정
 with st.sidebar:
-    if os.path.exists("검단탑병원-로고_고화질.png"):
+    if os.path.exists("검단탑병원-로고_고화질.png"): 
         st.image("검단탑병원-로고_고화질.png")
+    st.markdown("### 🛰️ 메뉴")
+    st.markdown("- 🏠 홈")
+    st.markdown("- ❓ AI 질문하기")
+    st.markdown("- 🎯 예상질문")
+    st.markdown("- 📝 체크리스트")
+    st.markdown("- 📂 준비자료")
+    st.markdown("- 🗣️ 모의면담")
+    st.markdown("- 🧩 교육퀴즈")
+    st.markdown("- ⭐ 즐겨찾기")
+    st.markdown("- 📊 관리자 통계")
+    st.markdown("---")
+    st.markdown("### 📢 실시간 상태")
+    st.success("지침서 데이터 동기화 완료")
+    st.info("v2.7.0 풀버전 복구 완료")
 
-    st.markdown("""
-    <div class="sidebar-box">
-        <div class="sidebar-title">📡 실시간 상태</div>
-        <div class="sidebar-text">● 인증 지침서 데이터 동기화 완료</div>
-        <div class="sidebar-text">● 검색 엔진 정상 가동</div>
-        <div class="sidebar-text">● AI 질의응답 모드</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### 인증조사 AI 메뉴")
-
-    if st.button("💬 AI 질문하기", use_container_width=True):
-        st.session_state.queued_query = "인증조사 준비를 위해 가장 먼저 확인해야 할 핵심 항목을 알려줘"
-        st.rerun()
-
-    if st.button("🔎 지침서 검색", use_container_width=True):
-        st.session_state.queued_query = "5주기 인증지침서에서 실무자가 반드시 확인해야 할 핵심 내용을 요약해줘"
-        st.rerun()
-
-    if st.button("❓ 예상질문", use_container_width=True):
-        st.session_state.queued_query = "조사위원이 현장에서 물어볼 수 있는 예상질문을 알려줘"
-        st.rerun()
-
-    if st.button("✅ 체크리스트", use_container_width=True):
-        st.session_state.queued_query = "인증조사 대비 부서별 체크리스트를 만들어줘"
-        st.rerun()
-
-    if st.button("📁 준비자료", use_container_width=True):
-        st.session_state.queued_query = "인증조사 시 준비해야 할 확인자료 목록을 알려줘"
-        st.rerun()
-
-# ============================================================
-# 로고 Base64
-# ============================================================
 logo_html = ""
 if os.path.exists("검단탑병원-로고_고화질.png"):
     with open("검단탑병원-로고_고화질.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
-        logo_html = f"<img src='data:image/png;base64,{encoded_string}'>"
+        logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:40px; background-color:white; padding:3px; border-radius:4px;'>"
 
-# ============================================================
-# 상단 헤더
-# ============================================================
+# 상단 대시보드 헤더
 st.markdown(f"""
-<div class="enterprise-header">
-    <div class="enterprise-left">
-        <div class="enterprise-logo-box">{logo_html}</div>
-        <div class="enterprise-title-wrap">
-            <div class="enterprise-eyebrow">GEOMDAN TOP HOSPITAL · ACCREDITATION AI</div>
-            <h1 class="enterprise-title">검단탑병원 인증조사 AI 전문가</h1>
+<div class='dashboard-header'>
+    {logo_html}
+    <h1>검단탑병원 인증조사 AI 도우미</h1>
+</div>
+""", unsafe_allow_html=True)
+
+# 메인 콘텐츠 레이아웃: 스트림릿의 Columns 기능을 활용
+main_col, answer_col = st.columns([2.2, 1])
+
+with main_col:
+    # 🔍 모드 전환 스위치 (알약 모양 흉내)
+    mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
+
+    # 환영 섹션 (로봇 이미지 대신 병원 로고 활용)
+    st.markdown(f"""
+    <div class='welcome-section'>
+        {logo_html}
+        <div>
+            <h2>안녕하세요! 인증조사 AI 도우미입니다</h2>
+            <p>인증지침 검색, 예상질문 대비, 체크리스트 확인까지<br>인증조사 준비를 AI와 함께 더 쉽고 빠르게!</p>
         </div>
     </div>
-    <div class="enterprise-right">
-        <div class="ai-badge">AI 전문가</div>
-        <div class="user-badge">인증담당자님</div>
+    """, unsafe_allow_html=True)
+
+    # 그리드 카드 섹션
+    st.markdown(f"""
+    <div class='grid-section'>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>❓</div>
+            <div class='grid-card-title'>조사위원 예상질문</div>
+            <div class='grid-card-desc'>낙상, 감염, 환자안전 등<br>분야별 예상질문 확인</div>
+        </div>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>📝</div>
+            <div class='grid-card-title'>부서별 체크리스트</div>
+            <div class='grid-card-desc'>부서별 인증 기준 및<br>체크리스트 확인</div>
+        </div>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>📂</div>
+            <div class='grid-card-title'>준비자료 확인</div>
+            <div class='grid-card-desc'>현장확인 및 면담 시<br>필요한 자료 확인</div>
+        </div>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>🗣️</div>
+            <div class='grid-card-title'>모의면담 시작</div>
+            <div class='grid-card-desc'>실제 조사 상황을 가정한<br>모의면담 연습</div>
+        </div>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>🧩</div>
+            <div class='grid-card-title'>OX 교육퀴즈</div>
+            <div class='grid-card-desc'>핵심 기준과 지침을 OX 퀴즈로<br>학습하고 실력을 점검</div>
+        </div>
+        <div class='grid-card'>
+            <div class='grid-card-icon'>⭐</div>
+            <div class='grid-card-title'>즐겨찾기 & 최근 질문</div>
+            <div class='grid-card-desc'>자주 찾는 항목과 최근<br>질문/답변 확인</div>
+        </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="mode-strip">
-    <div class="mode-pill active">🔍 인증 지침서 검색</div>
-    <div class="mode-pill">💬 AI 질의응답</div>
-</div>
-""", unsafe_allow_html=True)
+    # 추천 질문 (간단하게 텍스트로)
+    st.markdown("---")
+    st.markdown("### 💡 추천 질문")
+    st.markdown("- 낙상 발생 시 보고 절차는 어떻게 되나요?")
+    st.markdown("- 감염관리 위원회의 역할은 무엇인가요?")
+    st.markdown("- 의료진 교육 이수 관리 방법은?")
 
-# ============================================================
-# 질문 실행 함수
-# ============================================================
-def run_query(query):
-    st.session_state.search_msgs.append({"role": "user", "content": query})
+    if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
+    if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
+    if "current_q" not in st.session_state: st.session_state.current_q = None
 
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(query)
+    SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 출처 표시 없이 정답만 짧게 대답하십시오."""
 
-    with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("💭 지침서를 분석하며 생각중..."):
+    # 🔍 모드 1: 지침서 검색
+    if mode == "🔍 인증 지침서 검색":
+        for m in st.session_state.search_msgs:
+            with st.chat_message(m["role"]): st.markdown(m["content"])
+
+    # 🕵️‍♂️ 모드 2: 모의훈련 (원본 로직 유지)
+    elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
+        st.info("💡 감독관의 질문에 답변하고 지침서 기반 채점을 받아보세요.")
+        if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
+            with st.chat_message("assistant"):
+                random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
+                sample_ctx = "\n".join([d.page_content for d in random_docs])
+                q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
+                st.session_state.current_q = st.write_stream(q_stream)
+                st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
+        for m in st.session_state.train_msgs:
+            with st.chat_message(m["role"]): st.markdown(m["content"])
+
+with answer_col:
+    # 오른쪽 답변 구조 예시 섹션
+    st.markdown(f"""
+    <div class='answer-structure'>
+        <h3>🌟 AI 답변 구조 예시</h3>
+        <ul>
+            <li>
+                <div class='answer-structure-title'><span class='answer-structure-icon'> 요약</span>답변 요약</div>
+                <div class='answer-structure-content'>낙상예방을 위해 고위험 환자 평가, 환경관리, 교육, 모니터링 등 다각적인 중재를 시행하고 있으며, 낙상 발생 시 보고 및 분석을 통해 재발 방지 활동을 강화하고 있습니다.</div>
+            </li>
+            <li>
+                <div class='answer-structure-title'><span class='answer-structure-icon'> 근거</span>근거</div>
+                <div class='answer-structure-content'>• 환자안전 지침서 3.4 낙상예방관리<br>• 낙상예방 관리 절차서 (QPS-P-03-02)<br>• 5주기 인증기준 IPR.2.1, IPP.3.2</div>
+            </li>
+            <li>
+                <div class='answer-structure-title'><span class='answer-structure-icon'>자료</span>예상 확인자료</div>
+                <div class='answer-structure-content'>• 낙상 고위험 환자 평가 기록지<br>• 낙상 발생 보고서 및 RCA 분석 보고서<br>• 낙상예방 교육 자료 및 교육일지<br>• 병동 환경 점검 체크리스트</div>
+            </li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 🚨 하단 입력창 답변 프로세스 (디자인 보정 반영)
+if query := st.chat_input("질문하거나 답변하십시오..."):
+    if mode == "🔍 인증 지침서 검색":
+        st.session_state.search_msgs.append({"role": "user", "content": query})
+        with st.chat_message("user"): st.markdown(query)
+        with st.chat_message("assistant"):
             try:
                 docs = vdb.similarity_search(query, k=12)
                 ctx_str = "\n\n".join([d.page_content for d in docs])
-                full_ans = st.write_stream(
-                    get_intelligent_response(
-                        f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"
-                    )
-                )
+                full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
                 st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
-            except Exception as e:
-                st.error(f"🚨 오류: {e}")
-
-# ============================================================
-# 초기 화면
-# ============================================================
-if len(st.session_state.search_msgs) == 0:
-    left, right = st.columns([4.2, 1.4], gap="large")
-
-    with left:
-        st.markdown("""
-        <div class="hero-card">
-            <div class="robot-box">
-                <div class="robot-face"></div>
-            </div>
-            <div class="hero-content">
-                <div class="hero-kicker">🏅 5주기 인증조사 대비 AI 도우미</div>
-                <div class="hero-title">안녕하세요. 인증조사 <b>AI 전문가</b>입니다.</div>
-                <div class="hero-desc">
-                    인증지침서 검색, 조사위원 예상질문, 준비자료 확인, 부서별 체크포인트를
-                    지침서 기반으로 빠르게 확인할 수 있습니다.
-                </div>
-                <div class="start-badge">💬 아래 입력창에서 채팅 시작하기 ›</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.write("")
-
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("❓ 조사위원 예상질문\n\n특정 항목에 대해 물어볼 가능성이 높은 질문 확인", use_container_width=True):
-                st.session_state.queued_query = "조사위원이 현장에서 물어볼 수 있는 예상질문을 항목별로 정리해줘"
-                st.rerun()
-
-        with c2:
-            if st.button("✅ 부서별 체크리스트\n\n간호부, 감염관리, QI, 총무 등 준비사항 확인", use_container_width=True):
-                st.session_state.queued_query = "인증조사 대비 부서별 체크리스트를 만들어줘"
-                st.rerun()
-
-        with c3:
-            if st.button("📁 준비자료 확인\n\n조사 시 제시 가능한 문서와 점검표 확인", use_container_width=True):
-                st.session_state.queued_query = "인증조사 시 준비해야 할 확인자료 목록을 알려줘"
-                st.rerun()
-
-        c4, c5, c6 = st.columns(3)
-        with c4:
-            if st.button("🧾 답변 요약\n\n긴 지침 내용을 실무 답변으로 요약", use_container_width=True):
-                st.session_state.queued_query = "인증지침서 내용을 실무자가 답변하기 쉽게 요약하는 방법으로 정리해줘"
-                st.rerun()
-
-        with c5:
-            if st.button("⚖️ 근거 중심 답변\n\n지침서 기반 대응 방향 정리", use_container_width=True):
-                st.session_state.queued_query = "인증조사 답변 시 근거 중심으로 답변하는 예시를 알려줘"
-                st.rerun()
-
-        with c6:
-            if st.button("🧠 실무형 질문 대응\n\n현장에서 답변하기 쉬운 문장 구성", use_container_width=True):
-                st.session_state.queued_query = "현장 직원이 인증조사에서 답변하기 쉬운 실무형 답변 예시를 만들어줘"
-                st.rerun()
-
-        st.markdown("""
-        <div class="recommend-box">
-            ✨ 추천 질문&nbsp;&nbsp;
-            낙상 발생 시 보고 절차는 어떻게 되나요?&nbsp;&nbsp;&nbsp;
-            감염관리위원회의 역할은 무엇인가요?&nbsp;&nbsp;&nbsp;
-            직원교육 이수 관리는 어떻게 준비하나요?
-        </div>
-        """, unsafe_allow_html=True)
-
-        r1, r2, r3 = st.columns(3)
-        with r1:
-            if st.button("낙상 발생 시 보고 절차", use_container_width=True):
-                st.session_state.queued_query = "낙상 발생 시 보고 절차는 어떻게 되나요?"
-                st.rerun()
-        with r2:
-            if st.button("감염관리위원회 역할", use_container_width=True):
-                st.session_state.queued_query = "감염관리위원회의 역할은 무엇인가요?"
-                st.rerun()
-        with r3:
-            if st.button("직원교육 이수 관리", use_container_width=True):
-                st.session_state.queued_query = "직원교육 이수 관리는 어떻게 준비하나요?"
-                st.rerun()
-
-    with right:
-        st.markdown("""
-        <div class="example-panel">
-            <div class="example-title">✨ AI 답변 구조 예시</div>
-
-            <div class="example-card">
-                <div class="example-card-title">답변 요약</div>
-                <div class="example-card-text">
-                    낙상예방을 위해 고위험 환자 평가, 환경관리, 교육, 모니터링 등
-                    다각적인 중재를 시행하고 낙상 발생 시 재발방지 활동을 강화합니다.
-                </div>
-            </div>
-
-            <div class="example-card">
-                <div class="example-card-title">근거</div>
-                <div class="example-card-text">
-                    • 환자안전 관련 지침<br>
-                    • 낙상예방 관리 절차<br>
-                    • 5주기 인증기준 관련 항목
-                </div>
-            </div>
-
-            <div class="example-card">
-                <div class="example-card-title">예상 확인자료</div>
-                <div class="example-card-text">
-                    • 낙상 고위험 환자 평가 기록지<br>
-                    • 낙상 발생 보고서<br>
-                    • 교육자료 및 교육일지<br>
-                    • 병실 환경 점검 체크리스트
-                </div>
-            </div>
-
-            <div class="info-note">
-                ⓘ 위 내용은 화면 예시입니다. 실제 답변은 업로드된 인증 지침서 데이터에 기반하여 생성됩니다.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ============================================================
-# 기존 채팅 출력
-# ============================================================
-for m in st.session_state.search_msgs:
-    avatar = "👤" if m["role"] == "user" else "🤖"
-    with st.chat_message(m["role"], avatar=avatar):
-        st.markdown(m["content"])
-
-# ============================================================
-# 버튼으로 예약된 질문 실행
-# ============================================================
-if st.session_state.queued_query:
-    pending_query = st.session_state.queued_query
-    st.session_state.queued_query = None
-    run_query(pending_query)
-
-# ============================================================
-# 하단 입력창
-# ============================================================
-if query := st.chat_input("질문하거나 답변하십시오..."):
-    run_query(query)
+            except Exception as e: st.error(f"🚨 오류: {e}")
+    else:
+        if st.session_state.current_q:
+            st.session_state.train_msgs.append({"role": "user", "content": query})
+            with st.chat_message("user"): st.markdown(query)
+            with st.chat_message("assistant"):
+                try:
+                    docs = vdb.similarity_search(st.session_state.current_q, k=8)
+                    ctx_str = "\n\n".join([d.page_content for d in docs])
+                    full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
+                    st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
+                    st.session_state.current_q = None
+                except Exception as e: st.error(f"🚨 오류: {e}")
