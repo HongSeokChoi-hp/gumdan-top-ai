@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인 최고급화] 가독성 해결 및 전문 대시보드 스타일 CSS
+# 🎨 [디자인] 불필요한 요소 제거 및 전문 대시보드 스타일 CSS
 # ============================================================
 st.markdown("""
 <style>
@@ -44,6 +44,7 @@ st.markdown("""
         max-width: 1400px !important; 
     }
 
+    /* 상단 헤더/배너 */
     .dashboard-header { 
         background: linear-gradient(to right, #003366, #001f3f) !important; 
         padding: 20px 30px; 
@@ -63,15 +64,15 @@ st.markdown("""
         letter-spacing: -0.5px !important; 
     }
 
+    /* 사이드바 스타일 (가짜 메뉴 삭제를 위한 깔끔한 정돈) */
     [data-testid="stSidebar"] {
         background-color: #ffffff !important;
         border-right: 1px solid #e2e8f0;
         box-shadow: 2px 0 10px rgba(0,0,0,0.02);
     }
-    [data-testid="stSidebar"] .stMarkdown h3 {
-        color: #111827 !important;
-    }
+    [data-testid="stSidebar"] hr { border-color: #e2e8f0; }
 
+    /* 환영 섹션 */
     .welcome-section {
         background-color: white !important;
         padding: 25px;
@@ -87,6 +88,7 @@ st.markdown("""
     .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; font-size: 1.5rem;}
     .welcome-section p { color: #6b7280 !important; margin: 0; font-size: 1rem;}
 
+    /* 실제 기능 안내 카드 */
     .real-features-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -112,14 +114,11 @@ st.markdown("""
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05) !important;
         border-color: #005691 !important;
     }
-    .feature-card-icon {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        color: #005691 !important;
-    }
+    .feature-card-icon { font-size: 2rem; margin-bottom: 10px; color: #005691 !important; }
     .feature-card h3 { margin: 0 0 10px 0; color: #111827 !important; font-size: 1.2rem; font-weight: 700; }
     .feature-card p { margin: 0; color: #64748b !important; font-size: 0.95rem; line-height: 1.5; }
 
+    /* 답변 구조 안내 카드 */
     .answer-structure {
         background-color: white !important;
         padding: 25px;
@@ -135,6 +134,7 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;}
     .answer-structure-content { color: #475569 !important; font-size: 0.9rem; line-height: 1.6; }
 
+    /* 채팅 입력창 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
@@ -177,13 +177,9 @@ st.markdown("""
         background-color: #003366 !important;
         transform: scale(1.05);
     }
-    
-    div[data-testid="stChatInput"] svg {
-        fill: white !important;
-        width: 18px !important;
-        height: 18px !important;
-    }
+    div[data-testid="stChatInput"] svg { fill: white !important; width: 18px !important; height: 18px !important; }
 
+    /* 채팅 메시지 영역 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
@@ -241,24 +237,15 @@ def get_intelligent_response(prompt_text):
         if chunk.content:
             yield chunk.content
 
-# 🗂️ [메인 UI] 대폭 수정 및 정돈
+# 🗂️ [메인 UI] - 🚨 가짜 사이드바 메뉴 완벽 삭제
 with st.sidebar:
     if os.path.exists("검단탑병원-로고_고화질.png"): 
-        st.image("검단탑병원-로고_고화질.png")
-    st.markdown("### 🛰️ 메뉴")
-    st.markdown("🏠 홈")
-    st.markdown("❓ AI 질문하기")
-    st.markdown("🎯 예상질문")
-    st.markdown("📝 체크리스트")
-    st.markdown("📂 준비자료")
-    st.markdown("🗣️ 모의면담")
-    st.markdown("🧩 교육퀴즈")
-    st.markdown("⭐ 즐겨찾기")
-    st.markdown("📊 관리자 통계")
-    st.markdown("---")
-    st.markdown("### 📢 실시간 상태")
-    st.success("지침서 데이터 동기화 완료")
-    st.info("v2.7.0 풀버전 복구 완료")
+        st.image("검단탑병원-로고_고화질.png", use_container_width=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 📢 시스템 상태")
+    st.success("지침서 데이터 연동 완료")
+    st.info("AI 추론 엔진 정상 가동 중")
 
 logo_html = ""
 if os.path.exists("검단탑병원-로고_고화질.png"):
@@ -266,7 +253,6 @@ if os.path.exists("검단탑병원-로고_고화질.png"):
         encoded_string = base64.b64encode(image_file.read()).decode()
         logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:40px; background-color:white; padding:3px; border-radius:4px;'>"
 
-# 상단 헤더
 st.markdown(f"""
 <div class='dashboard-header'>
     {logo_html}
@@ -284,7 +270,7 @@ with main_col:
         {logo_html}
         <div>
             <h2>안녕하세요! 인증조사 AI 도우미입니다</h2>
-            <p>인증지침 검색, 예상질문 대비, 체크리스트 확인까지<br>인증조사 준비를 AI와 함께 더 쉽고 빠르게!</p>
+            <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 같은 훈련을 진행하세요.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -294,12 +280,12 @@ with main_col:
         <div class='feature-card'>
             <div class='feature-card-icon'>🔍</div>
             <h3>인증 지침서 AI 검색</h3>
-            <p>궁금한 인증 기준이나 절차를 아래 채팅창에 입력하세요. AI가 내부 지침서 원문을 분석하여 즉시 3단 양식으로 요약해 드립니다.</p>
+            <p>궁금한 인증 기준이나 절차를 아래 채팅창에 입력하세요. AI가 내부 지침서 원문을 분석하여 즉시 요약해 드립니다.</p>
         </div>
         <div class='feature-card'>
             <div class='feature-card-icon'>🕵️‍♂️</div>
             <h3>실전 모의감독관 훈련</h3>
-            <p>상단의 라디오 버튼을 변경하여 모의 훈련을 시작하세요. AI가 날카로운 질문을 던지고, 선생님의 답변을 지침에 맞게 채점해 줍니다.</p>
+            <p>상단의 라디오 버튼을 변경하여 모의 훈련을 시작하세요. AI가 날카로운 질문을 던지고 답변을 채점해 줍니다.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -308,7 +294,6 @@ with main_col:
     if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
     if "current_q" not in st.session_state: st.session_state.current_q = None
 
-    # 🚨 [핵심 수정] AI 답변 구조에 정확한 페이지 번호(p.) 요구 사항 추가
     SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
     사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
@@ -332,7 +317,6 @@ with main_col:
             with st.chat_message("assistant"):
                 with st.spinner("💭 감독관이 질문을 생성하고 있습니다..."):
                     random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
-                    # 🚨 훈련 모드에서도 메타데이터(페이지 정보) 포함
                     sample_ctx = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in random_docs])
                     q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 행동 말고 규정 지식을 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
                     st.session_state.current_q = st.write_stream(q_stream)
@@ -341,7 +325,6 @@ with main_col:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
 with answer_col:
-    # 🚨 우측 UI 가이드에도 (p.숫자) 표시 추가
     st.markdown(f"""
     <div class='answer-structure'>
         <h3>🌟 AI 표준 답변 가이드</h3>
@@ -362,7 +345,6 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 🚨 하단 입력창 답변 프로세스
 if query := st.chat_input("인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오..."):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
@@ -371,7 +353,6 @@ if query := st.chat_input("인증 지침에 관해 질문하거나 감독관의 
             with st.spinner("💭 지침서를 분석하며 페이지 번호와 함께 3단 양식으로 정리중..."):
                 try:
                     docs = vdb.similarity_search(query, k=12)
-                    # 🚨 원문 데이터 추출 시 메타데이터(페이지 번호 등)를 통째로 넘겨 AI가 파악하게 함
                     ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
                     full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
                     st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
@@ -384,7 +365,6 @@ if query := st.chat_input("인증 지침에 관해 질문하거나 감독관의 
                 with st.spinner("💭 답변을 기반으로 채점중..."):
                     try:
                         docs = vdb.similarity_search(st.session_state.current_q, k=8)
-                        # 🚨 훈련 모드 채점 시에도 메타데이터 포함
                         ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
                         full_ans = st.write_stream(get_intelligent_response(f"감독관 시선 채점 및 보완. 출처 금지.\n질문: {st.session_state.current_q}\n답변: {query}\n데이터:\n{ctx_str}"))
                         st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
