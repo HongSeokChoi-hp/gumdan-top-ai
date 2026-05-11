@@ -21,178 +21,168 @@ st.set_page_config(
     page_title="검단탑병원 인증조사 AI 도우미", 
     page_icon="🏅", 
     layout="wide", 
-    initial_sidebar_state="auto"
+    initial_sidebar_state="expanded"
 )
 
 # ============================================================
-# 🎨 [디자인] 대시보드 스타일 CSS
+# 🎨 [디자인 끝판왕] 대시보드 최고급 스타일 CSS
 # ============================================================
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
     
-    .stApp { background-color: #F8FAFC !important; }
-    p, span, div, li, h1, h2, h3, h4 { color: #111827 !important; }
+    /* 전체 배경색 아주 연한 파스텔톤으로 변경 */
+    .stApp { background-color: #F4F7FB !important; }
+    p, span, div, li, h1, h2, h3, h4 { color: #1e293b !important; }
     
+    /* 기본 스트림릿 요소 숨기기 */
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
     .block-container { 
-        padding-top: 1rem !important; 
+        padding-top: 1.5rem !important; 
         padding-bottom: 0rem !important; 
-        margin-top: 0px !important; 
+        max-width: 1400px !important; /* 화면을 너무 넓지 않게 잡아줌 */
     }
 
-    /* 상단 헤더/배너 */
+    /* 💎 상단 헤더/배너 고급화 */
     .dashboard-header { 
-        background-color: white !important; 
-        padding: 15px 25px; 
-        border-radius: 10px; 
-        margin-bottom: 20px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        background: linear-gradient(to right, #ffffff, #f8fafc); 
+        padding: 18px 30px; 
+        border-radius: 16px; 
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        border: 1px solid #e2e8f0;
         display: flex;
         align-items: center;
-        gap: 15px;
-        width: 100%;
-        overflow: hidden;
+        gap: 20px;
     }
-    .dashboard-header img { height: 40px !important; flex-shrink: 0; } 
+    .dashboard-header img { height: 45px !important; flex-shrink: 0; } 
     .dashboard-header h1 { 
         margin: 0; 
-        font-size: 1.5rem !important; 
+        font-size: 1.6rem !important; 
         font-weight: 800; 
         color: #003366 !important; 
-        white-space: nowrap !important; 
-        letter-spacing: -1px !important; 
-        flex-shrink: 0;
+        letter-spacing: -0.5px !important; 
     }
 
-    /* 사이드바 스타일 */
+    /* 💎 사이드바 깔끔하게 정돈 */
     [data-testid="stSidebar"] {
-        background-color: #F8FAFC !important;
+        background-color: #ffffff !important;
         border-right: 1px solid #e2e8f0;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.02);
     }
-    [data-testid="stSidebar"] .stMarkdown h3 {
-        color: #111827 !important;
-    }
+    [data-testid="stSidebar"] hr { border-color: #f1f5f9; }
 
-    /* 중앙 콘텐츠 영역 */
-    .main-content {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 20px;
-    }
-
-    /* 환영 섹션 */
+    /* 💎 환영 섹션 고급화 */
     .welcome-section {
-        background-color: white !important;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        background: linear-gradient(135deg, #005691 0%, #003366 100%);
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 86, 145, 0.15);
         display: flex;
         align-items: center;
-        gap: 20px;
-        margin-bottom: 20px;
+        gap: 25px;
+        margin-bottom: 25px;
+        color: white !important;
     }
-    .welcome-section img { height: 80px !important; }
-    .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; }
-    .welcome-section p { color: #6b7280 !important; margin: 0; }
+    .welcome-section * { color: white !important; }
+    .welcome-section img { height: 70px !important; background: white; padding: 10px; border-radius: 12px; }
+    .welcome-section h2 { margin: 0 0 10px 0; font-size: 1.8rem; font-weight: 800; }
+    .welcome-section p { margin: 0; opacity: 0.9; font-size: 1.05rem; line-height: 1.5; }
 
-    /* 그리드 카드 섹션 */
+    /* 💎 그리드 카드 애니메이션 및 그림자 강화 */
     .grid-section {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 20px;
+        margin-bottom: 30px;
     }
     .grid-card {
         background-color: white !important;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        border: 1px solid #e2e8f0;
         text-align: left;
+        transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
-    .grid-card-icon {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        color: #005691 !important; 
+    .grid-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(0, 86, 145, 0.08);
+        border-color: #005691;
     }
-    .grid-card-title {
-        font-weight: 700;
-        color: #111827 !important;
-        margin-bottom: 5px;
-        font-size: 1rem;
-    }
-    .grid-card-desc {
-        color: #6b7280 !important;
-        font-size: 0.9rem;
-    }
+    .grid-card-icon { font-size: 2.2rem; margin-bottom: 15px; color: #005691 !important; }
+    .grid-card-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 8px; }
+    .grid-card-desc { color: #64748b !important; font-size: 0.95rem; line-height: 1.4; }
 
-    /* 오른쪽 답변 구조 예시 섹션 */
+    /* 💎 오른쪽 답변 구조 예시 (프리미엄 카드 느낌) */
     .answer-structure {
         background-color: white !important;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        border: 1px solid #e2e8f0;
+        position: sticky;
+        top: 20px;
     }
-    .answer-structure h3 { color: #111827 !important; margin: 0 0 15px 0; font-size: 1.1rem; }
+    .answer-structure h3 { color: #003366 !important; margin: 0 0 20px 0; font-size: 1.2rem; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
     .answer-structure ul { list-style: none; padding: 0; margin: 0; }
-    .answer-structure li { margin-bottom: 15px; }
-    .answer-structure-icon { color: #005691 !important; margin-right: 10px; font-size: 1.2rem; }
-    .answer-structure-title { font-weight: 700; color: #111827 !important; }
-    .answer-structure-content { color: #6b7280 !important; font-size: 0.9rem; margin-top: 5px;}
+    .answer-structure li { margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #005691; }
+    .answer-structure-title { font-weight: 800; color: #005691 !important; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
+    .answer-structure-content { color: #475569 !important; font-size: 0.95rem; line-height: 1.6; }
 
-    /* 채팅창 디자인 */
+    /* 💎 플로팅 스타일 채팅 입력창 끝판왕 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
-        padding: 10px 0 25px 0 !important; 
-        background-color: transparent !important; 
+        padding: 20px 0 30px 0 !important; 
+        background: linear-gradient(to top, #F4F7FB 80%, transparent) !important; 
         z-index: 1001 !important; 
     }
     div[data-testid="stChatInput"] > div { 
         background-color: #ffffff !important; 
-        border: 2px solid #005691 !important; 
-        border-radius: 20px !important; 
+        border: 2px solid #cbd5e1 !important; 
+        border-radius: 30px !important; 
         margin: 0 10px !important;
-        overflow: hidden !important;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+        transition: border-color 0.3s;
+    }
+    div[data-testid="stChatInput"] > div:focus-within {
+        border-color: #005691 !important;
     }
     div[data-testid="stChatInput"] textarea {
-        color: #111827 !important; 
-        -webkit-text-fill-color: #111827 !important; 
-        background-color: #ffffff !important;
-        padding: 12px 15px !important;
-        font-size: 1rem !important;
+        color: #1e293b !important; 
+        -webkit-text-fill-color: #1e293b !important; 
+        padding: 15px 20px !important;
+        font-size: 1.05rem !important;
     }
     div[data-testid="stChatInput"] button {
         background-color: #005691 !important; 
         color: white !important;
         border-radius: 50% !important;
-        padding: 5px !important;
+        padding: 8px !important;
         margin-right: 10px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        transition: transform 0.2s, background-color 0.2s;
     }
-    div[data-testid="stChatInput"] svg {
-        fill: white !important;
-        width: 20px !important;
-        height: 20px !important;
+    div[data-testid="stChatInput"] button:hover {
+        background-color: #003366 !important;
+        transform: scale(1.05);
     }
+    
+    /* 💎 채팅 메시지 말풍선 세련되게 다듬기 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
-        border-radius: 12px; 
-        padding: 15px 20px; 
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05); 
-        margin-bottom: 12px; 
+        border-radius: 16px; 
+        padding: 20px 25px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+        margin-bottom: 15px; 
         border: 1px solid #e2e8f0; 
+        line-height: 1.6;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -259,15 +249,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📢 실시간 상태")
     st.success("지침서 데이터 동기화 완료")
-    st.info("v2.7.0 풀버전 복구 완료")
 
 logo_html = ""
 if os.path.exists("검단탑병원-로고_고화질.png"):
     with open("검단탑병원-로고_고화질.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
-        logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:40px; background-color:white; padding:3px; border-radius:4px;'>"
+        logo_html = f"<img src='data:image/png;base64,{encoded_string}' style='height:45px; background-color:transparent;'>"
 
-# 상단 헤더
 st.markdown(f"""
 <div class='dashboard-header'>
     {logo_html}
@@ -285,7 +273,7 @@ with main_col:
         {logo_html}
         <div>
             <h2>안녕하세요! 인증조사 AI 도우미입니다</h2>
-            <p>인증지침 검색, 예상질문 대비, 체크리스트 확인까지<br>인증조사 준비를 AI와 함께 더 쉽고 빠르게!</p>
+            <p>인증지침 검색, 예상질문 대비, 체크리스트 확인까지<br>인증조사 준비를 AI와 함께 더 쉽고 빠르게 진행하세요.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -325,17 +313,11 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### 💡 추천 질문")
-    st.markdown("- 낙상 발생 시 보고 절차는 어떻게 되나요?")
-    st.markdown("- 감염관리 위원회의 역할은 무엇인가요?")
-    st.markdown("- 의료진 교육 이수 관리 방법은?")
-
     if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
     if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
     if "current_q" not in st.session_state: st.session_state.current_q = None
 
-    # 🚨 [핵심 변경] AI 답변 구조 강제 프롬프트
+    # 🚨 AI 답변 구조 3단 강제 룰 적용
     SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
     사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
@@ -369,35 +351,33 @@ with main_col:
 with answer_col:
     st.markdown(f"""
     <div class='answer-structure'>
-        <h3>🌟 AI 답변 구조 예시</h3>
+        <h3>🌟 AI 답변 구조 안내</h3>
         <ul>
             <li>
-                <div class='answer-structure-title'><span class='answer-structure-icon'> 요약</span>답변 요약</div>
-                <div class='answer-structure-content'>낙상예방을 위해 고위험 환자 평가, 환경관리, 교육, 모니터링 등 다각적인 중재를 시행하고 있으며, 낙상 발생 시 보고 및 분석을 통해 재발 방지 활동을 강화하고 있습니다.</div>
+                <div class='answer-structure-title'>💡 답변 요약</div>
+                <div class='answer-structure-content'>낙상예방을 위해 고위험 환자 평가, 환경관리, 교육 등을 시행하며 재발 방지 활동을 강화합니다.</div>
             </li>
             <li>
-                <div class='answer-structure-title'><span class='answer-structure-icon'> 근거</span>근거</div>
-                <div class='answer-structure-content'>• 환자안전 지침서 3.4 낙상예방관리<br>• 낙상예방 관리 절차서 (QPS-P-03-02)<br>• 5주기 인증기준 IPR.2.1, IPP.3.2</div>
+                <div class='answer-structure-title'>⚖️ 근거</div>
+                <div class='answer-structure-content'>• 환자안전 지침서 3.4 낙상예방관리<br>• 5주기 인증기준 IPR.2.1</div>
             </li>
             <li>
-                <div class='answer-structure-title'><span class='answer-structure-icon'>자료</span>예상 확인자료</div>
-                <div class='answer-structure-content'>• 낙상 고위험 환자 평가 기록지<br>• 낙상 발생 보고서 및 RCA 분석 보고서<br>• 낙상예방 교육 자료 및 교육일지<br>• 병동 환경 점검 체크리스트</div>
+                <div class='answer-structure-title'>📂 예상 확인자료</div>
+                <div class='answer-structure-content'>• 낙상 고위험 환자 평가 기록지<br>• 낙상 발생 보고서 및 RCA 분석<br>• 병동 환경 점검 체크리스트</div>
             </li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
-# 🚨 하단 입력창 답변 프로세스
 if query := st.chat_input("질문하거나 답변하십시오..."):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
         with st.chat_message("user"): st.markdown(query)
         with st.chat_message("assistant"):
-            with st.spinner("💭 지침서를 분석하며 생각중..."):
+            with st.spinner("💭 지침서를 분석하며 3단 양식으로 정리중..."):
                 try:
                     docs = vdb.similarity_search(query, k=12)
                     ctx_str = "\n\n".join([d.page_content for d in docs])
-                    # 시스템 룰(SYS_RULE)이 적용되어 3단 구조로 답변을 생성합니다.
                     full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
                     st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
                 except Exception as e: st.error(f"🚨 오류: {e}")
