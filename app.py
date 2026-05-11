@@ -24,106 +24,106 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인 정상화] PC/모바일 완벽 호환 CSS (버그 원천 차단)
+# 🎨 [오류 완벽 제거] PC 깔끔함 유지 + 모바일 정상화 CSS
 # ============================================================
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
     
-    /* 1. 기본 배경 및 폰트 컬러 (다크모드 강제 해제) */
+    /* 기본 배경 및 텍스트 */
     .stApp { background-color: #f4f7fb !important; }
     p, span, div, li, h1, h2, h3, h4 { color: #111827 !important; }
     
-    /* 2. 스트림릿 기본 방해 요소 영구 삭제 */
+    /* 불필요한 기본 요소 제거 */
     [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 3. 빈공간 축소 */
     .block-container { 
-        padding-top: 1rem !important; 
+        padding-top: 1.5rem !important; 
         padding-bottom: 0rem !important; 
         max-width: 1200px !important; 
     }
 
-    /* 4. 상단 네이비 배너 */
+    /* 상단 배너 */
     .dashboard-header { 
-        background: linear-gradient(135deg, #003366 0%, #005691 100%) !important; 
+        background: linear-gradient(90deg, #003366 0%, #005691 100%) !important; 
         padding: 15px 25px; 
-        border-radius: 12px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-radius: 8px; 
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         display: flex;
         align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 12px;
+        margin-bottom: 15px;
     }
-    .dashboard-header img { height: 40px !important; flex-shrink: 0; background: white; padding: 4px; border-radius: 8px;} 
+    .dashboard-header img { height: 35px !important; flex-shrink: 0; background: white; padding: 4px; border-radius: 6px;} 
     .dashboard-header * { color: #ffffff !important; } 
-    .dashboard-header h1 { margin: 0; font-size: 1.5rem !important; font-weight: 800; letter-spacing: -0.5px !important;}
+    .dashboard-header h1 { margin: 0; font-size: 1.4rem !important; font-weight: 800; letter-spacing: -0.5px !important;}
 
-    /* 5. 모드 전환 라디오 버튼 (깔끔한 탭 스타일) */
+    /* 모드 전환 탭 (PC/모바일 모두 깔끔하게) */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         background-color: #ffffff !important;
         padding: 8px !important;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.05);
         margin-bottom: 20px;
         border: 1px solid #e2e8f0;
     }
-    div[role="radiogroup"] label { font-weight: 700 !important; color: #475569 !important; padding: 8px 15px !important; border-radius: 8px !important;}
+    div[role="radiogroup"] { gap: 10px; }
+    div[role="radiogroup"] label { font-weight: 700 !important; color: #475569 !important; padding: 8px 15px !important; border-radius: 6px !important; cursor: pointer;}
     div[role="radiogroup"] label[data-baseweb="radio"]:has(input[checked]) { background-color: #f1f5f9 !important; }
-    div[role="radiogroup"] label[data-baseweb="radio"]:has(input[checked]) * { color: #005691 !important; }
+    div[role="radiogroup"] label[data-baseweb="radio"]:has(input[checked]) * { color: #003366 !important; }
 
-    /* 6. 환영 섹션 카드 */
+    /* 환영 섹션 */
     .welcome-section {
         background-color: white !important;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 15px;
         border: 1px solid #e2e8f0;
         margin-bottom: 20px;
     }
-    .welcome-section img { height: 60px !important; flex-shrink: 0; }
-    .welcome-section h2 { color: #111827 !important; margin: 0 0 8px 0; font-size: 1.4rem; font-weight: 800;}
-    .welcome-section p { color: #475569 !important; margin: 0; font-size: 1rem; line-height: 1.5;}
+    .welcome-section img { height: 50px !important; flex-shrink: 0; }
+    .welcome-section h2 { color: #111827 !important; margin: 0 0 8px 0; font-size: 1.3rem; font-weight: 800; word-break: keep-all;}
+    .welcome-section p { color: #475569 !important; margin: 0; font-size: 0.95rem; line-height: 1.5; word-break: keep-all;}
 
-    /* 7. 우측 답변 구조 안내 카드 (깨졌던 부분 완벽 복구) */
+    /* 우측 답변 가이드 (파괴된 레이아웃 정상화) */
     .answer-structure {
         background-color: white !important;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
         border: 1px solid #e2e8f0;
     }
-    .answer-structure h3 { color: #003366 !important; margin: 0 0 15px 0; font-size: 1.2rem; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+    .answer-structure h3 { color: #003366 !important; margin: 0 0 15px 0; font-size: 1.1rem; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
     .answer-structure ul { list-style: none; padding: 0; margin: 0; }
-    .answer-structure li { margin-bottom: 15px; }
-    .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 1.05rem;}
-    .answer-structure-content { color: #475569 !important; font-size: 0.95rem; line-height: 1.6; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #005691; }
+    .answer-structure li { margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #005691; }
+    .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 1rem;}
+    .answer-structure-content { color: #475569 !important; font-size: 0.9rem; line-height: 1.6; }
 
-    /* 🚨 8. 모바일 채팅창 시커먼 버그 완벽 해결 (순백색 고정) 🚨 */
+    /* 🚨 시커먼 채팅창 버그 완벽 해결 🚨 */
     div[data-testid="stChatInput"] { 
         position: sticky !important; 
         bottom: 0 !important; 
-        padding: 10px 0 25px 0 !important; 
-        background: #f4f7fb !important; /* 바깥 배경색과 동일하게 */
+        padding: 15px 0 25px 0 !important; 
+        background-color: #f4f7fb !important; /* 바깥 배경색과 동일 */
         z-index: 1001 !important; 
     }
+    /* 입력창 본체 무조건 순백색 강제 */
     div[data-testid="stChatInput"] > div { 
-        background-color: #ffffff !important; /* 입력창 본체는 무조건 흰색 */
-        border: 2px solid #cbd5e1 !important; 
+        background-color: #ffffff !important; 
+        border: 1px solid #cbd5e1 !important; 
         border-radius: 30px !important; 
         margin: 0 10px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
     }
-    div[data-testid="stChatInput"] > div:focus-within {
-        border-color: #005691 !important;
-    }
-    /* 글씨 색상 무조건 짙은 회색 강제 */
+    div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
+    
+    /* 텍스트 무조건 검정색 강제 */
     div[data-testid="stChatInput"] textarea {
         color: #111827 !important; 
         -webkit-text-fill-color: #111827 !important; 
@@ -131,8 +131,7 @@ st.markdown("""
         padding: 12px 20px !important;
         font-size: 1rem !important;
     }
-    ::placeholder { color: #94a3b8 !important; opacity: 1; }
-    
+    /* 전송 버튼 */
     div[data-testid="stChatInput"] button {
         background-color: #005691 !important; 
         color: white !important;
@@ -142,26 +141,27 @@ st.markdown("""
     }
     div[data-testid="stChatInput"] svg { fill: white !important; width: 18px !important; height: 18px !important; }
 
-    /* 9. 채팅 메시지 말풍선 */
+    /* 채팅 메시지 영역 */
     [data-testid="stChatMessage"] { 
         background-color: #ffffff; 
         border-radius: 12px; 
-        padding: 20px 25px; 
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05); 
+        padding: 15px 20px; 
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03); 
         margin-bottom: 15px; 
         border: 1px solid #e2e8f0; 
         line-height: 1.6;
     }
 
-    /* 📱 10. 모바일에서만 살짝 조절 (PC 레이아웃은 건드리지 않음) */
+    /* 📱 모바일 가시성 최적화 (세로 찌그러짐 방지) */
     @media (max-width: 768px) {
-        .block-container { padding-top: 0.5rem !important; }
-        .dashboard-header { flex-direction: column; align-items: flex-start; padding: 15px; border-radius: 8px;}
-        .dashboard-header img { height: 35px !important; }
+        .block-container { padding-top: 0.5rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+        .dashboard-header { flex-direction: column; align-items: flex-start; padding: 15px; }
         .dashboard-header h1 { font-size: 1.2rem !important; }
-        .welcome-section { flex-direction: column; text-align: center; padding: 20px; }
-        .welcome-section img { height: 50px !important; }
-        div[data-testid="stChatInput"] { padding-bottom: env(safe-area-inset-bottom, 20px) !important; } /* 아이폰 하단 바 대응 */
+        .welcome-section { flex-direction: column; align-items: center; text-align: center; padding: 20px; }
+        .welcome-section h2 { font-size: 1.15rem !important; }
+        div[role="radiogroup"] { display: flex; flex-direction: column; width: 100%; }
+        div[role="radiogroup"] label { text-align: center; width: 100%; }
+        div[data-testid="stChatInput"] { padding-bottom: 35px !important; } /* 아이폰 하단 여백 확보 */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -225,7 +225,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 모드 선택 탭
+# 탭 스타일 라디오
 if "current_mode" not in st.session_state: st.session_state.current_mode = "🔍 인증 지침서 검색"
 st.session_state.current_mode = st.radio("모드 선택", ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"], horizontal=True, label_visibility="collapsed")
 mode = st.session_state.current_mode
@@ -234,7 +234,7 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 🚨 정상적인 스트림릿 2분할 컬럼 레이아웃 (이전의 파괴적인 속성 제거)
+# 정상적인 2분할 레이아웃 (모바일에서는 자동으로 위아래로 쌓임)
 main_col, answer_col = st.columns([2.2, 1])
 
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
@@ -251,13 +251,12 @@ SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
 """
 
 with main_col:
-    # 환영 섹션
     st.markdown(f"""
     <div class='welcome-section'>
         {logo_html}
         <div>
             <h2>안녕하세요! 인증조사 AI 전문가입니다</h2>
-            <p>인증지침 검색, 예상질문 대비, 체크리스트 확인까지 AI와 함께 더 쉽고 빠르게!</p>
+            <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요.</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -280,7 +279,6 @@ with main_col:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
 with answer_col:
-    # 우측 답변 가이드 (파괴되었던 디자인 완벽 복구)
     st.markdown(f"""
     <div class='answer-structure'>
         <h3>🌟 AI 표준 답변 가이드</h3>
@@ -301,7 +299,7 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 🚨 순백색으로 에러 완벽 해결된 채팅창
+# 하단 입력창 답변 프로세스
 if query := st.chat_input("질문하거나 답변하십시오..."):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
