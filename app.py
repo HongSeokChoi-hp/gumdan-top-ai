@@ -16,15 +16,16 @@ except Exception:
     st.stop()
 
 SET_PASSWORD = "0366" 
+SYSTEM_NAME = "검단탑병원 인증 AI 시스템" # 🚨 명칭 통합 변수
 
 st.set_page_config(
-    page_title="검단탑병원 인증조사 AI 전문가", 
+    page_title=SYSTEM_NAME, 
     page_icon="🏅", 
     layout="wide"
 )
 
 # ============================================================
-# 🎨 [디자인 최종본] 가로 여백 대폭 감소 (화면 꽉 차게) + 채팅창 일직선 정렬
+# 🎨 [디자인 최종본] 가로폭 1800px 대폭 확장 + 명칭 통일
 # ============================================================
 st.markdown("""
 <style>
@@ -39,9 +40,9 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 🚨 가로폭 제한 대폭 확대 (1100px -> 1600px) 양옆 여백 감소 */
+    /* 🚨 가로폭 제한 대폭 확대 (1600px -> 1800px) 화면 시원하게 꽉 채움 */
     .block-container { 
-        max-width: 1600px !important; 
+        max-width: 1800px !important; 
         margin: 0 auto !important;
         padding-top: 2rem !important; 
         padding-bottom: 0rem !important; 
@@ -103,9 +104,9 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.05rem !important;}
     .answer-structure-content { color: #475569 !important; font-size: 0.95rem !important; line-height: 1.6; }
 
-    /* 🚨 채팅창 가로폭을 늘어난 상단 컨테이너 폭(1600px)에 완벽하게 맞춤 */
+    /* 🚨 채팅창 가로폭을 늘어난 상단 컨테이너 폭(1800px)에 완벽하게 맞춤 */
     div[data-testid="stChatInput"] { 
-        max-width: 1600px !important;  
+        max-width: 1800px !important;  
         margin: 0 auto !important; 
         left: 0 !important; right: 0 !important; 
         padding-bottom: 25px !important;
@@ -139,7 +140,7 @@ if not st.session_state.get("authenticated", False):
     with col2:
         if os.path.exists("검단탑병원-로고_고화질.png"): 
             st.image("검단탑병원-로고_고화질.png", use_container_width=True)
-        st.markdown("<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>인증조사 AI 도우미 시스템</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align:center; color:#003366; font-weight:800; margin-bottom:20px;'>{SYSTEM_NAME}</h3>", unsafe_allow_html=True)
         pwd = st.text_input("보안 코드 입력", type="password", placeholder="코드를 입력하세요", label_visibility="collapsed")
         if pwd == SET_PASSWORD: 
             st.session_state.authenticated = True
@@ -187,7 +188,7 @@ if os.path.exists("검단탑병원-로고_고화질.png"):
 st.markdown(f"""
 <div class='dashboard-header'>
     {logo_html}
-    <h1>검단탑병원 인증조사 AI 전문가</h1>
+    <h1>{SYSTEM_NAME}</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -205,7 +206,7 @@ main_col, answer_col = st.columns([2.2, 1], gap="large")
 
 quick_query = None
 
-SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
+SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다. 
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
 ### 💡 답변 요약
@@ -224,7 +225,7 @@ with main_col:
     <div class='welcome-section'>
         {logo_html}
         <div>
-            <h2>안녕하세요! 인증조사 AI 전문가입니다</h2>
+            <h2>안녕하세요! {SYSTEM_NAME}입니다</h2>
             <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요.<br>지침 기반의 정확한 답변과 근거 페이지를 즉시 확인하시고 평가를 완벽하게 대비하십시오.</p>
         </div>
     </div>
