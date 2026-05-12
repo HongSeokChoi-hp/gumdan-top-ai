@@ -757,7 +757,7 @@ def get_intelligent_text(prompt_text):
 VECTOR_K = 30
 EXACT_LIMIT = 20
 FINAL_DOC_LIMIT = 18
-GUIDE_PAGE_OFFSET = -4  # guide 파일은 실제 하단 페이지보다 4 크게 잡히므로 -4 보정
+GUIDE_PAGE_OFFSET = 0  # 새 코랩 인덱스는 printed_page가 정확히 저장되므로 지침서 페이지 보정 없음
 
 # ============================================================
 # 📌 metadata 기반 출처/페이지 처리
@@ -884,19 +884,38 @@ def get_doc_ref_label(d):
     return f"{source_label} p.{page}"
 
 
-def build_allowed_refs(docs, max_refs=8):
+def build_allowed_refs(docs, max_refs=4, max_per_source=2):
+    """
+    검색된 후보 docs 순서를 신뢰하여 근거 페이지를 선별합니다.
+    - 핸드북 최대 2개
+    - 지침서 최대 2개
+    - 전체 최대 4개
+    너무 많은 페이지를 뿌리지 않도록 제한합니다.
+    """
     refs = []
     seen = set()
+    source_counts = {
+        "핸드북": 0,
+        "지침서": 0,
+        "자료": 0
+    }
 
     for d in docs:
+        source_label = get_source_label(d)
         ref = get_doc_ref_label(d)
 
         if "페이지 정보 없음" in ref:
             continue
 
-        if ref not in seen:
-            seen.add(ref)
-            refs.append(ref)
+        if ref in seen:
+            continue
+
+        if source_counts.get(source_label, 0) >= max_per_source:
+            continue
+
+        seen.add(ref)
+        refs.append(ref)
+        source_counts[source_label] = source_counts.get(source_label, 0) + 1
 
         if len(refs) >= max_refs:
             break
@@ -904,7 +923,7 @@ def build_allowed_refs(docs, max_refs=8):
     return refs
 
 
-def build_verified_reference_html(allowed_refs, max_refs=5):
+def build_verified_reference_html(allowed_refs, max_refs=4):
     """
     AI 답변과 분리하여 코드가 직접 근거 페이지를 표시합니다.
     페이지 번호가 AI 답변에서 지워지는 문제를 방지하기 위한 강제 표출 영역입니다.
@@ -1433,7 +1452,7 @@ if final_query:
                     docs = collect_candidate_docs(final_query)
 
                     ctx_str = build_context_for_ai(docs)
-                    allowed_refs = build_allowed_refs(docs, max_refs=8)
+                    allowed_refs = build_allowed_refs(docs, max_refs=4, max_per_source=2)
                     allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                     draft_answer = get_intelligent_text(
@@ -1467,7 +1486,7 @@ if final_query:
                     verified_answer = remove_file_names_and_forbidden_words(verified_answer)
                     verified_answer = strip_page_refs_from_ai_answer(verified_answer)
 
-                    reference_html = build_verified_reference_html(allowed_refs, max_refs=5)
+                    reference_html = build_verified_reference_html(allowed_refs, max_refs=4)
                     final_answer = verified_answer + "\n\n" + reference_html
 
                     st.markdown(verified_answer)
@@ -1500,7 +1519,7 @@ if final_query:
                         docs = collect_candidate_docs(st.session_state.current_q)
 
                         ctx_str = build_context_for_ai(docs)
-                        allowed_refs = build_allowed_refs(docs, max_refs=8)
+                        allowed_refs = build_allowed_refs(docs, max_refs=4, max_per_source=2)
                         allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                         draft_answer = get_intelligent_text(
@@ -1546,7 +1565,7 @@ if final_query:
                         verified_answer = remove_file_names_and_forbidden_words(verified_answer)
                         verified_answer = strip_page_refs_from_ai_answer(verified_answer)
 
-                        reference_html = build_verified_reference_html(allowed_refs, max_refs=5)
+                        reference_html = build_verified_reference_html(allowed_refs, max_refs=4)
                         final_answer = verified_answer + "\n\n" + reference_html
 
                         st.markdown(verified_answer)
