@@ -16,7 +16,7 @@ except Exception:
     st.stop()
 
 SET_PASSWORD = "0366" 
-SYSTEM_NAME = "검단탑병원 인증 AI 시스템" # 🚨 명칭 통합 변수
+SYSTEM_NAME = "검단탑병원 인증 AI 시스템" 
 
 st.set_page_config(
     page_title=SYSTEM_NAME, 
@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인 최종본] 가로폭 1800px 대폭 확장 + 명칭 통일
+# 🎨 [디자인] PC 원본 유지 + 모바일 전용 채팅창 리셋 코드 추가
 # ============================================================
 st.markdown("""
 <style>
@@ -40,7 +40,7 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 🚨 가로폭 제한 대폭 확대 (1600px -> 1800px) 화면 시원하게 꽉 채움 */
+    /* [PC 버전] 가로폭 1800px 유지 */
     .block-container { 
         max-width: 1800px !important; 
         margin: 0 auto !important;
@@ -104,7 +104,7 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.05rem !important;}
     .answer-structure-content { color: #475569 !important; font-size: 0.95rem !important; line-height: 1.6; }
 
-    /* 🚨 채팅창 가로폭을 늘어난 상단 컨테이너 폭(1800px)에 완벽하게 맞춤 */
+    /* [PC 버전] 채팅창 디자인 (유지) */
     div[data-testid="stChatInput"] { 
         max-width: 1800px !important;  
         margin: 0 auto !important; 
@@ -113,12 +113,12 @@ st.markdown("""
         background-color: #f8f9fa !important;
     }
     div[data-testid="stChatInput"] > div {
-        margin: 0 3rem !important; /* 상단 컨테이너의 padding-left, right와 동일하게 맞춤 */
+        margin: 0 3rem !important; 
         border: 2px solid #cbd5e1 !important;
     }
     div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
 
-    /* 모바일 반응형 */
+    /* 📱 [모바일 버전] 전용 독립 디자인 (PC 설정 완전 분리/초기화) */
     @media (max-width: 768px) {
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
         .block-container { padding-top: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; }
@@ -127,8 +127,23 @@ st.markdown("""
         .dashboard-header h1 { font-size: 1.3rem !important; }
         .welcome-section { padding: 20px; flex-direction: column; text-align: center; gap: 10px; margin-bottom: 15px;}
         div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 8px 12px !important; }
-        div[data-testid="stChatInput"] { padding-bottom: 30px !important; }
-        div[data-testid="stChatInput"] > div { margin: 0 1rem !important; }
+        
+        /* 🚨 모바일 채팅창: PC의 넓은 여백과 검정 박스 현상 완벽 제거 */
+        div[data-testid="stChatInput"] { 
+            padding-bottom: 25px !important; 
+            background-color: #f8f9fa !important;
+        }
+        div[data-testid="stChatInput"] > div { 
+            margin: 0 5px !important; /* 모바일에 맞춘 얇은 여백 */
+            border: 1px solid #cbd5e1 !important; /* 테두리 얇게 리셋 */
+            background-color: #ffffff !important; /* 순백색 강제 적용 (검은 박스 방지) */
+            border-radius: 20px !important;
+        }
+        div[data-testid="stChatInput"] textarea {
+            color: #111827 !important;
+            -webkit-text-fill-color: #111827 !important;
+            background-color: transparent !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -206,6 +221,7 @@ main_col, answer_col = st.columns([2.2, 1], gap="large")
 
 quick_query = None
 
+# 🚨 파일명 출력 원천 차단을 위한 프롬프트 강화
 SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다. 
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
@@ -213,7 +229,8 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 (질문에 대한 핵심 내용을 2~3줄로 명확하게 요약)
 
 ### ⚖️ 근거
-(답변의 근거가 되는 지침서 항목, 절차서 번호 및 **정확한 페이지 번호**를 불릿 기호(•)를 사용하여 나열. 예: • 환자안전 지침서 3.4 (p.12))
+(답변의 근거가 되는 지침서 항목과 **정확한 페이지 번호**를 불릿 기호(•)를 사용하여 나열. 예: • 환자안전 지침서 3.4 (p.12))
+🚨 주의사항: 근거 작성 시 절대로 영문 파일명(예: guide.pdf 등)을 출력하지 마십시오. 오직 한글 지침서 이름과 (p.00) 형태의 페이지만 표기하십시오.
 
 ### 📂 예상 확인자료
 (현장 평가 시 확인하거나 준비해야 할 관련 기록지, 보고서, 체크리스트 등을 불릿 기호(•)를 사용하여 나열)
@@ -254,7 +271,14 @@ with main_col:
             with st.chat_message("assistant"):
                 with st.spinner("💭 감독관이 지침서를 분석하여 질문을 생성 중..."):
                     random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
-                    sample_ctx = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in random_docs])
+                    # 🚨 파일명 제외 처리
+                    ctx_list = []
+                    for d in random_docs:
+                        p_val = d.metadata.get('page', '')
+                        p_num = f"{p_val+1}" if isinstance(p_val, int) else str(p_val)
+                        ctx_list.append(f"[페이지: p.{p_num}]\n{d.page_content}")
+                    sample_ctx = "\n\n".join(ctx_list)
+                    
                     q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
                     st.session_state.current_q = st.write_stream(q_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
@@ -282,10 +306,7 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 하단 채팅창 (타이핑 입력값 또는 버튼 클릭값 모두 받음)
 chat_input_query = st.chat_input("인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오...")
-
-# 사용자가 직접 쳤거나, 버튼을 눌렀다면 둘 중 하나를 최종 검색어로 인식
 final_query = chat_input_query or quick_query
 
 if final_query:
@@ -296,7 +317,14 @@ if final_query:
             with st.spinner("💭 지침서를 분석하며 답변을 정리 중..."):
                 try:
                     docs = vdb.similarity_search(final_query, k=15)
-                    ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
+                    # 🚨 파일명(metadata 통째 노출)을 아예 차단하고 페이지만 문자열로 제공
+                    ctx_list = []
+                    for d in docs:
+                        p_val = d.metadata.get('page', '')
+                        p_num = f"{p_val+1}" if isinstance(p_val, int) else str(p_val)
+                        ctx_list.append(f"[페이지: p.{p_num}]\n{d.page_content}")
+                    ctx_str = "\n\n".join(ctx_list)
+                    
                     full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {final_query}"))
                     st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
                 except Exception as e: st.error(f"🚨 오류: {e}")
@@ -308,8 +336,15 @@ if final_query:
                 with st.spinner("💭 답변을 기반으로 지침서 부합 여부 채점 중..."):
                     try:
                         docs = vdb.similarity_search(st.session_state.current_q, k=10)
-                        ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
-                        full_ans = st.write_stream(get_intelligent_response(f"인증평가 감독관 시선에서 직원의 답변 채점 및 보완. 실제 지침서 내용 기반 피드백.\n질문: {st.session_state.current_q}\n직원 답변: {final_query}\n지침 데이터:\n{ctx_str}"))
+                        # 🚨 여기도 파일명 차단
+                        ctx_list = []
+                        for d in docs:
+                            p_val = d.metadata.get('page', '')
+                            p_num = f"{p_val+1}" if isinstance(p_val, int) else str(p_val)
+                            ctx_list.append(f"[페이지: p.{p_num}]\n{d.page_content}")
+                        ctx_str = "\n\n".join(ctx_list)
+                        
+                        full_ans = st.write_stream(get_intelligent_response(f"인증평가 감독관 시선에서 직원의 답변 채점 및 보완. 실제 지침서 내용 기반 피드백. 파일명(guide.pdf 등) 절대 출력 금지.\n질문: {st.session_state.current_q}\n직원 답변: {final_query}\n지침 데이터:\n{ctx_str}"))
                         st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
                         st.session_state.current_q = None
                     except Exception as e: st.error(f"🚨 오류: {e}")
