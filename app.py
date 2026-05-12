@@ -5,6 +5,7 @@ import os
 import random
 import time
 import base64
+import re
 
 # ============================================================
 # 🔑 [보안] Streamlit Secrets 및 API 키 연동
@@ -243,35 +244,6 @@ st.markdown("""
         color: #475569 !important;
         font-size: 0.95rem !important;
         line-height: 1.6;
-    }
-
-    .reference-box {
-        margin-top: 22px;
-        padding: 18px 20px;
-        background: #ffffff;
-        border: 1px solid #dbe3ef;
-        border-left: 5px solid #005691;
-        border-radius: 12px;
-        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
-    }
-
-    .reference-box h4 {
-        margin: 0 0 10px 0;
-        color: #003366 !important;
-        font-size: 1.05rem !important;
-        font-weight: 800;
-    }
-
-    .reference-box ul {
-        margin: 0;
-        padding-left: 20px;
-    }
-
-    .reference-box li {
-        color: #334155 !important;
-        margin-bottom: 6px;
-        font-size: 0.95rem;
-        line-height: 1.45;
     }
 
     div[data-testid="stChatInput"] {
@@ -573,22 +545,6 @@ st.markdown("""
             display: none !important;
         }
 
-        .reference-box {
-            margin-top: 12px !important;
-            padding: 12px 14px !important;
-            border-radius: 10px !important;
-        }
-
-        .reference-box h4 {
-            font-size: 0.9rem !important;
-            margin-bottom: 8px !important;
-        }
-
-        .reference-box li {
-            font-size: 0.78rem !important;
-            line-height: 1.35 !important;
-        }
-
         .element-container {
             margin-bottom: 0.22rem !important;
         }
@@ -745,52 +701,57 @@ if not vdb:
     st.stop()
 
 
-def get_intelligent_response(prompt_text):
-    time.sleep(1.0)
-
-    llm = ChatGoogleGenerativeAI(
+def make_llm():
+    return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         google_api_key=random.choice(API_KEYS),
         temperature=0.0
     )
+
+
+def get_intelligent_response(prompt_text):
+    time.sleep(0.5)
+    llm = make_llm()
 
     for chunk in llm.stream(prompt_text):
         if chunk.content:
             yield chunk.content
 
 
+def get_intelligent_text(prompt_text):
+    time.sleep(0.5)
+    llm = make_llm()
+    result = llm.invoke(prompt_text)
+    return result.content if hasattr(result, "content") else str(result)
+
+
 # ============================================================
-# 📌 참조 문서/페이지 자동 추출
+# 📌 페이지 metadata 처리
 # ============================================================
-def clean_doc_name(raw_name):
-    if not raw_name:
-        return "출처 미상"
-
-    name = str(raw_name)
-    name = os.path.basename(name)
-
-    for ext in [".pdf", ".PDF", ".hwp", ".HWP", ".docx", ".DOCX", ".txt", ".TXT"]:
-        if name.endswith(ext):
-            name = name[:-len(ext)]
-
-    return name.strip() or "출처 미상"
-
-
 def extract_page_number(page_value):
+    """
+    중요:
+    - 사용자가 말한 '하단 페이지 번호가 metadata에 들어있다'는 가정하에,
+      page 값에 +1을 하지 않고 그대로 사용합니다.
+    - page_index처럼 명백한 index성 필드가 들어온 경우에만 +1 처리합니다.
+    """
     if page_value is None or page_value == "":
         return None
 
     try:
         if isinstance(page_value, int):
-            return page_value + 1
+            return page_value
 
         if isinstance(page_value, float):
-            return int(page_value) + 1
+            return int(page_value)
 
         page_text = str(page_value).strip()
 
+        page_text = page_text.replace("p.", "").replace("P.", "")
+        page_text = page_text.replace("페이지", "").strip()
+
         if page_text.isdigit():
-            return int(page_text) + 1
+            return int(page_text)
 
         return page_text
 
@@ -798,91 +759,115 @@ def extract_page_number(page_value):
         return str(page_value)
 
 
-def build_reference_section(docs, max_items=8):
-    refs = []
+def get_doc_page(d):
+    meta = getattr(d, "metadata", {}) or {}
+
+    raw_page = None
+
+    if meta.get("printed_page") is not None:
+        raw_page = meta.get("printed_page")
+    elif meta.get("display_page") is not None:
+        raw_page = meta.get("display_page")
+    elif meta.get("page_label") is not None:
+        raw_page = meta.get("page_label")
+    elif meta.get("page") is not None:
+        raw_page = meta.get("page")
+    elif meta.get("page_number") is not None:
+        raw_page = meta.get("page_number")
+    elif meta.get("p") is not None:
+        raw_page = meta.get("p")
+
+    return extract_page_number(raw_page)
+
+
+def build_allowed_pages(docs, max_pages=8):
+    pages = []
     seen = set()
 
     for d in docs:
-        meta = getattr(d, "metadata", {}) or {}
+        page = get_doc_page(d)
 
-        raw_source = (
-            meta.get("source")
-            or meta.get("file_path")
-            or meta.get("filename")
-            or meta.get("file_name")
-            or meta.get("doc_name")
-            or meta.get("title")
-            or "출처 미상"
-        )
+        if page is None:
+            continue
 
-        doc_name = clean_doc_name(raw_source)
+        page_label = f"p.{page}"
 
-        raw_page = (
-            meta.get("page")
-            or meta.get("page_number")
-            or meta.get("page_index")
-            or meta.get("p")
-        )
+        if page_label not in seen:
+            seen.add(page_label)
+            pages.append(page_label)
 
-        page_num = extract_page_number(raw_page)
-
-        if page_num is None:
-            label = f"{doc_name} / 페이지 정보 없음"
-        else:
-            label = f"{doc_name} / p.{page_num}"
-
-        if label not in seen:
-            seen.add(label)
-            refs.append(label)
-
-        if len(refs) >= max_items:
+        if len(pages) >= max_pages:
             break
 
-    if not refs:
-        return """
-<div class='reference-box'>
-    <h4>📌 참조 문서 및 페이지</h4>
-    <ul>
-        <li>검색 결과에서 페이지 metadata를 확인하지 못했습니다. FAISS 인덱스 생성 시 page/source metadata 저장 여부를 확인해야 합니다.</li>
-    </ul>
-</div>
-"""
-
-    lis = "\n".join([f"<li>{r}</li>" for r in refs])
-
-    return f"""
-<div class='reference-box'>
-    <h4>📌 참조 문서 및 페이지</h4>
-    <ul>
-        {lis}
-    </ul>
-</div>
-"""
+    return pages
 
 
-def build_context_without_page_instruction(docs):
+def build_context_for_ai(docs):
+    """
+    파일명은 AI에게 넘기지 않습니다.
+    페이지 번호와 원문 조각만 넘깁니다.
+    """
     ctx_list = []
 
     for idx, d in enumerate(docs, start=1):
-        meta = getattr(d, "metadata", {}) or {}
+        page = get_doc_page(d)
+        page_label = f"p.{page}" if page is not None else "페이지 정보 없음"
 
-        raw_source = (
-            meta.get("source")
-            or meta.get("file_path")
-            or meta.get("filename")
-            or meta.get("file_name")
-            or meta.get("doc_name")
-            or meta.get("title")
-            or "출처 미상"
-        )
-
-        doc_name = clean_doc_name(raw_source)
+        content = d.page_content
 
         ctx_list.append(
-            f"[자료 {idx} / 문서명: {doc_name}]\n{d.page_content}"
+            f"[근거자료 {idx} / 허용 페이지: {page_label}]\n{content}"
         )
 
     return "\n\n".join(ctx_list)
+
+
+def remove_file_names_and_forbidden_words(text):
+    """
+    manual, guide, pdf 등 파일명성 표현 제거.
+    """
+    if not text:
+        return ""
+
+    cleaned = text
+
+    forbidden_patterns = [
+        r"\bmanual\d*\b\s*/?\s*",
+        r"\bguide\d*\b\s*/?\s*",
+        r"\b[a-zA-Z0-9_\-]+\.(pdf|PDF|hwp|HWP|docx|DOCX|txt|TXT)\b",
+        r"파일명\s*[:：]?\s*[^\\n]+",
+    ]
+
+    for pattern in forbidden_patterns:
+        cleaned = re.sub(pattern, "", cleaned)
+
+    return cleaned.strip()
+
+
+def force_allowed_page_only(text, allowed_pages):
+    """
+    답변 안의 p.숫자가 허용 페이지 목록 밖이면 제거합니다.
+    """
+    if not text:
+        return ""
+
+    if not allowed_pages:
+        return text
+
+    allowed_nums = set()
+    for p in allowed_pages:
+        allowed_nums.add(str(p).replace("p.", "").strip())
+
+    def repl(match):
+        num = match.group(1)
+        if num in allowed_nums:
+            return f"p.{num}"
+        return ""
+
+    text = re.sub(r"p\.\s*(\d+)", repl, text)
+    text = re.sub(r"(\d+)\s*페이지", lambda m: f"p.{m.group(1)}" if m.group(1) in allowed_nums else "", text)
+
+    return text
 
 
 # ============================================================
@@ -935,24 +920,48 @@ quick_query = None
 # 📌 AI 답변 시스템 룰
 # ============================================================
 SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
-사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
+
+사용자의 질문에 대해 반드시 제공된 [원문 데이터]만 근거로 답변하십시오.
+
+답변은 반드시 아래 3단 구조로 작성하십시오.
 
 ### 💡 답변 요약
-질문에 대한 핵심 내용을 2~3줄로 명확하게 요약하십시오.
+- 질문에 대한 핵심 내용을 2~3줄로 요약하십시오.
 
 ### ⚖️ 근거
-답변의 근거가 되는 지침 내용, 기준, 규정의 핵심을 설명하십시오.
-단, 페이지 번호는 절대 작성하지 마십시오.
-예: p.12, p.127, 127페이지, 299페이지 같은 표현을 절대 쓰지 마십시오.
-문서명과 페이지 번호는 시스템 코드가 답변 하단에 자동으로 추가합니다.
+- 관련 지침 내용과 기준을 설명하십시오.
+- 페이지 번호는 반드시 [원문 데이터]에 표시된 '허용 페이지' 중에서만 사용하십시오.
+- 허용 페이지에 없는 p.번호는 절대 쓰지 마십시오.
+- 파일명, manual, guide, pdf, hwp 같은 표현은 절대 출력하지 마십시오.
+- 표현 예시: • 의료폐기물은 종류별 보관기간이 다르게 적용됩니다. (p.127)
 
 ### 📂 예상 확인자료
-현장 평가 시 확인하거나 준비해야 할 관련 기록지, 보고서, 체크리스트 등을 불릿 기호(•)로 제시하십시오.
+- 현장 평가 시 확인하거나 준비해야 할 기록지, 보고서, 체크리스트를 불릿 기호(•)로 제시하십시오.
 
-🚨 중요:
-- 영문 파일명이나 PDF 파일명을 직접 출력하지 마십시오.
-- 페이지 번호를 추측하거나 생성하지 마십시오.
-- 제공된 원문 데이터에 없는 내용을 단정하지 마십시오.
+금지사항:
+- 파일명 출력 금지
+- 영문 파일명 출력 금지
+- 허용 페이지 외 페이지 번호 생성 금지
+- 원문 데이터에 없는 내용 단정 금지
+"""
+
+VERIFY_RULE = """
+너는 병원 인증 지침 답변 검증자입니다.
+
+아래 [초안 답변]을 [원문 데이터]와 [허용 페이지 목록] 기준으로 검증하여 최종 답변으로 다시 작성하십시오.
+
+검증 기준:
+1. 답변 내용이 원문 데이터에 근거하는지 확인하십시오.
+2. 근거의 페이지 번호가 허용 페이지 목록 안에 있는지 확인하십시오.
+3. 허용 페이지 목록에 없는 페이지 번호는 삭제하십시오.
+4. manual, guide, pdf, hwp, 파일명 등은 절대 출력하지 마십시오.
+5. 답변 형식은 반드시 아래 3단 구조를 유지하십시오.
+
+### 💡 답변 요약
+### ⚖️ 근거
+### 📂 예상 확인자료
+
+검증 후 최종 답변만 출력하십시오.
 """
 
 # ============================================================
@@ -1005,7 +1014,7 @@ with main_col:
 
         for m in st.session_state.search_msgs:
             with st.chat_message(m["role"]):
-                st.markdown(m["content"], unsafe_allow_html=True)
+                st.markdown(m["content"])
 
     elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
 
@@ -1019,10 +1028,10 @@ with main_col:
                         k=3
                     )
 
-                    sample_ctx = build_context_without_page_instruction(random_docs)
+                    sample_ctx = build_context_for_ai(random_docs)
 
                     q_stream = get_intelligent_response(
-                        f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요. 페이지 번호는 절대 쓰지 마세요.\n\n내용:\n{sample_ctx}"
+                        f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요. 파일명과 페이지 번호는 쓰지 마세요.\n\n내용:\n{sample_ctx}"
                     )
 
                     st.session_state.current_q = st.write_stream(q_stream)
@@ -1033,7 +1042,7 @@ with main_col:
 
         for m in st.session_state.train_msgs:
             with st.chat_message(m["role"]):
-                st.markdown(m["content"], unsafe_allow_html=True)
+                st.markdown(m["content"])
 
 # ============================================================
 # 📌 우측 AI 표준 답변 가이드
@@ -1049,7 +1058,7 @@ with answer_col:
             </li>
             <li>
                 <div class='answer-structure-title'>⚖️ 근거</div>
-                <div class='answer-structure-content'>관련 지침 내용과 기준을 설명하고, 실제 페이지는 시스템이 자동 표시합니다.</div>
+                <div class='answer-structure-content'>관련 지침 내용과 기준을 설명하고, 허용된 페이지 번호만 함께 표시합니다.</div>
             </li>
             <li>
                 <div class='answer-structure-title'>📂 예상 확인자료</div>
@@ -1079,26 +1088,56 @@ if final_query:
             st.markdown(final_query)
 
         with st.chat_message("assistant"):
-            with st.spinner("💭 지침서를 분석하며 답변을 정리 중..."):
+            with st.spinner("💭 지침서를 검색하고 답변을 1차 작성 중..."):
                 try:
-                    docs = vdb.similarity_search(final_query, k=15)
+                    docs = vdb.similarity_search(final_query, k=12)
 
-                    ctx_str = build_context_without_page_instruction(docs)
-                    reference_html = build_reference_section(docs)
+                    ctx_str = build_context_for_ai(docs)
+                    allowed_pages = build_allowed_pages(docs, max_pages=8)
+                    allowed_pages_text = ", ".join(allowed_pages) if allowed_pages else "페이지 정보 없음"
 
-                    full_ans = st.write_stream(
-                        get_intelligent_response(
-                            f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {final_query}"
-                        )
+                    draft_answer = get_intelligent_text(
+                        f"""
+{SYS_RULE}
+
+[허용 페이지 목록]
+{allowed_pages_text}
+
+[원문 데이터]
+{ctx_str}
+
+[사용자 질문]
+{final_query}
+"""
                     )
 
-                    st.markdown(reference_html, unsafe_allow_html=True)
+                    with st.spinner("🔎 답변 내용과 페이지 근거를 재검증 중..."):
+                        verified_answer = get_intelligent_text(
+                            f"""
+{VERIFY_RULE}
 
-                    final_answer_with_refs = full_ans + "\n\n" + reference_html
+[허용 페이지 목록]
+{allowed_pages_text}
+
+[원문 데이터]
+{ctx_str}
+
+[사용자 질문]
+{final_query}
+
+[초안 답변]
+{draft_answer}
+"""
+                        )
+
+                    verified_answer = remove_file_names_and_forbidden_words(verified_answer)
+                    verified_answer = force_allowed_page_only(verified_answer, allowed_pages)
+
+                    st.markdown(verified_answer)
 
                     st.session_state.search_msgs.append({
                         "role": "assistant",
-                        "content": final_answer_with_refs
+                        "content": verified_answer
                     })
 
                 except Exception as e:
@@ -1124,39 +1163,64 @@ if final_query:
                             k=10
                         )
 
-                        ctx_str = build_context_without_page_instruction(docs)
-                        reference_html = build_reference_section(docs)
+                        ctx_str = build_context_for_ai(docs)
+                        allowed_pages = build_allowed_pages(docs, max_pages=8)
+                        allowed_pages_text = ", ".join(allowed_pages) if allowed_pages else "페이지 정보 없음"
 
-                        full_ans = st.write_stream(
-                            get_intelligent_response(
-                                f"""
+                        draft_answer = get_intelligent_text(
+                            f"""
 인증평가 감독관 시선에서 직원의 답변을 채점하고 보완점을 제시하십시오.
 
 규칙:
 - 실제 지침서 내용 기반으로만 피드백하십시오.
 - 파일명은 출력하지 마십시오.
-- 페이지 번호는 절대 쓰지 마십시오.
-- 페이지와 문서명은 시스템 코드가 하단에 자동으로 추가합니다.
+- 페이지 번호는 반드시 허용 페이지 목록 안에서만 사용하십시오.
+- 허용 페이지 외 페이지 번호는 절대 만들지 마십시오.
 
-질문:
+[허용 페이지 목록]
+{allowed_pages_text}
+
+[감독관 질문]
 {st.session_state.current_q}
 
-직원 답변:
+[직원 답변]
 {final_query}
 
-지침 데이터:
+[지침 데이터]
 {ctx_str}
 """
-                            )
                         )
 
-                        st.markdown(reference_html, unsafe_allow_html=True)
+                        with st.spinner("🔎 채점 내용과 근거를 재검증 중..."):
+                            verified_answer = get_intelligent_text(
+                                f"""
+{VERIFY_RULE}
 
-                        final_answer_with_refs = full_ans + "\n\n" + reference_html
+[허용 페이지 목록]
+{allowed_pages_text}
+
+[원문 데이터]
+{ctx_str}
+
+[감독관 질문]
+{st.session_state.current_q}
+
+[직원 답변]
+{final_query}
+
+[초안 답변]
+{draft_answer}
+"""
+                            )
+
+                        verified_answer = remove_file_names_and_forbidden_words(verified_answer)
+                        verified_answer = force_allowed_page_only(verified_answer, allowed_pages)
+
+                        st.markdown(verified_answer)
 
                         st.session_state.train_msgs.append({
                             "role": "assistant",
-                            "content": final_answer_with_refs
+                            "content": verified_answer
                         })
 
                         st.session_state.current_q = None
