@@ -25,14 +25,15 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] PC 1800px 유지 + 모바일 글씨 잘림 및 시커먼 배경 완벽 해결
+# 🎨 [디자인] PC 1800px 유지 + 모바일 UX 완벽 분리 및 다크모드 강제 무력화
 # ============================================================
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
     
-    .stApp { background-color: #f8f9fa !important; }
+    /* 전체 기본 배경 (라이트 모드 고정) */
+    .stApp, [data-testid="stAppViewContainer"] { background-color: #f8f9fa !important; }
     p, span, div, li, h1, h2, h3, h4 { color: #111827 !important; }
     
     /* 방해 요소 영구 삭제 */
@@ -40,7 +41,7 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 🚨 [PC 버전] 가로폭 1800px 유지 (절대 손대지 않음) */
+    /* 🖥️ [PC UX] 가로폭 1800px 유지 (기존 레이아웃) */
     .block-container { 
         max-width: 1800px !important; 
         margin: 0 auto !important;
@@ -50,7 +51,7 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
-    /* 상단 네이비 배너 */
+    /* 상단 배너 */
     .dashboard-header { 
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important; 
         padding: 25px 35px; 
@@ -63,7 +64,7 @@ st.markdown("""
     .dashboard-header * { color: #ffffff !important; } 
     .dashboard-header h1 { margin: 0; font-size: 1.8rem !important; font-weight: 800; letter-spacing: -1px !important;}
 
-    /* 모드 선택 라디오 버튼 */
+    /* 모드 선택 탭 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         background-color: #ffffff !important; padding: 12px 20px !important; border-radius: 10px;
         border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
@@ -80,7 +81,7 @@ st.markdown("""
     .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; font-size: 1.6rem !important; font-weight: 800; }
     .welcome-section p { color: #475569 !important; margin: 0; font-size: 1.05rem !important; line-height: 1.6; }
 
-    /* 클릭 버튼 디자인 */
+    /* 추천 질문 버튼 */
     .quick-prompts-title { margin: 0 0 15px 0; font-size: 1.2rem !important; color: #1e293b !important; font-weight: 800;}
     div[data-testid="stButton"] button {
         background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 25px !important;
@@ -104,78 +105,92 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.05rem !important;}
     .answer-structure-content { color: #475569 !important; font-size: 0.95rem !important; line-height: 1.6; }
 
-    /* [PC 버전] 채팅창 디자인 (유지) */
+    /* [PC 버전] 하단 채팅창 */
     div[data-testid="stChatInput"] { 
         max-width: 1800px !important;  
         margin: 0 auto !important; 
         left: 0 !important; right: 0 !important; 
         padding-bottom: 25px !important;
-        background-color: #f8f9fa !important;
+        background-color: transparent !important;
     }
     div[data-testid="stChatInput"] > div {
         margin: 0 3rem !important; 
         border: 2px solid #cbd5e1 !important;
+        background-color: #ffffff !important;
     }
     div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
 
     /* ============================================================ */
-    /* 📱 [모바일 버전] 시커먼 배경 및 글씨 잘림 완벽 리셋 */
+    /* 📱 [모바일 UX] 미디어 쿼리를 통한 모바일 독립 환경 구축 */
     /* ============================================================ */
     @media (max-width: 768px) {
+        /* 우측 가이드 컬럼 숨김 처리 */
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
+        
+        /* 모바일 여백 재설정 및 가로 스크롤 방지 */
         .block-container { 
             padding-top: 0.5rem !important; 
             padding-left: 1rem !important; 
             padding-right: 1rem !important; 
-            overflow-x: hidden !important; /* 가로 스크롤 방지 */
+            overflow-x: hidden !important; 
         }
         
-        /* 헤더 모바일 정렬 */
+        /* 헤더 중앙 정렬 및 텍스트 래핑 처리 (글씨 잘림 방지) */
         .dashboard-header { padding: 15px; margin-bottom: 15px; flex-direction: column; align-items: center; text-align: center; gap: 10px;}
         .dashboard-header img { height: 35px !important; }
         .dashboard-header h1 { font-size: 1.3rem !important; white-space: normal !important; word-break: keep-all !important; }
 
-        /* 환영 섹션 모바일 정렬 (글씨 잘림 해결) */
+        /* 환영 섹션 중앙 정렬 (글씨 잘림 방지) */
         .welcome-section { padding: 20px 15px; flex-direction: column; text-align: center; gap: 15px; margin-bottom: 15px;}
         .welcome-section img { height: 55px !important; }
         .welcome-section h2 { font-size: 1.3rem !important; margin-bottom: 5px; white-space: normal !important; word-break: keep-all !important;}
         .welcome-section p { font-size: 0.95rem !important; white-space: normal !important; word-break: keep-all !important;}
         
-        /* 버튼 크기 조정 */
+        /* 버튼 크기 축소 */
         div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 10px 12px !important; }
         
-        /* 🚨 모바일 하단 거대한 검은색 배경(다크모드 찌꺼기) 완벽 차단 */
-        [data-testid="stBottomBlock"],
+        /* 🚨 [핵심] 기기 다크모드 무력화 및 모바일 하단 컨테이너 색상 강제 지정 */
+        [data-testid="stBottomBlock"], 
         div[data-testid="stChatInputContainer"] {
-            background: #f8f9fa !important;
             background-color: #f8f9fa !important;
+            background: #f8f9fa !important;
         }
         
+        /* 모바일 채팅창 구조 리셋 */
         div[data-testid="stChatInput"] { 
             padding-bottom: 20px !important; 
-            background: transparent !important;
             background-color: transparent !important;
         }
-        
-        /* 채팅창 껍데기를 순백색으로 */
         div[data-testid="stChatInput"] > div { 
             margin: 0 !important; 
-            background-color: #ffffff !important; 
+            background-color: #ffffff !important; /* 순백색 껍데기 */
             border: 1px solid #cbd5e1 !important;
             border-radius: 20px !important;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
         }
         
-        /* 내부 텍스트 에어리어 검정 현상 차단 */
+        /* iOS 등 모바일 브라우저 텍스트 입력창 어두움/글씨 안보임 현상 차단 */
         div[data-testid="stChatInput"] div[data-baseweb="base-input"],
         div[data-testid="stChatInput"] textarea {
             background-color: transparent !important;
             color: #111827 !important;
-            -webkit-text-fill-color: #111827 !important;
+            -webkit-text-fill-color: #111827 !important; /* iOS 강제 텍스트 색상 */
         }
         div[data-testid="stChatInput"] textarea::placeholder {
             color: #94a3b8 !important;
             -webkit-text-fill-color: #94a3b8 !important;
+        }
+        
+        /* 전송 버튼 아이콘 복구 */
+        div[data-testid="stChatInput"] button {
+            background-color: #005691 !important;
+            border-radius: 50% !important;
+            margin-right: 5px !important;
+            padding: 8px !important;
+        }
+        div[data-testid="stChatInput"] button svg {
+            fill: #ffffff !important;
+            color: #ffffff !important;
         }
     }
 </style>
@@ -249,12 +264,12 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 넓어진 가로폭에 맞춰 2분할 레이아웃 적용
+# PC 가로폭에 맞춘 2분할 레이아웃
 main_col, answer_col = st.columns([2.2, 1], gap="large")
 
 quick_query = None
 
-# 🚨 파일명 출력 원천 차단을 위한 프롬프트 (유지)
+# 🚨 파일명 출력 원천 차단 룰 유지
 SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다. 
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
@@ -304,7 +319,6 @@ with main_col:
             with st.chat_message("assistant"):
                 with st.spinner("💭 감독관이 지침서를 분석하여 질문을 생성 중..."):
                     random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
-                    # 🚨 파일명 제외 처리
                     ctx_list = []
                     for d in random_docs:
                         p_val = d.metadata.get('page', '')
@@ -350,7 +364,6 @@ if final_query:
             with st.spinner("💭 지침서를 분석하며 답변을 정리 중..."):
                 try:
                     docs = vdb.similarity_search(final_query, k=15)
-                    # 🚨 파일명(metadata 통째 노출)을 아예 차단하고 페이지만 문자열로 제공
                     ctx_list = []
                     for d in docs:
                         p_val = d.metadata.get('page', '')
@@ -369,7 +382,6 @@ if final_query:
                 with st.spinner("💭 답변을 기반으로 지침서 부합 여부 채점 중..."):
                     try:
                         docs = vdb.similarity_search(st.session_state.current_q, k=10)
-                        # 🚨 파일명 차단
                         ctx_list = []
                         for d in docs:
                             p_val = d.metadata.get('page', '')
