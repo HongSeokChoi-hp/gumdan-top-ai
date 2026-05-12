@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인 최종본] 레이아웃 밀착 + 채팅창 일직선 정렬 + 진짜 클릭 버튼 적용
+# 🎨 [디자인 최종본] 가로 여백 대폭 감소 (화면 꽉 차게) + 채팅창 일직선 정렬
 # ============================================================
 st.markdown("""
 <style>
@@ -39,12 +39,14 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 🚨 1. 가운데 구멍 해결: 전체 가로폭 고정 및 중앙 정렬 */
+    /* 🚨 가로폭 제한 대폭 확대 (1100px -> 1600px) 양옆 여백 감소 */
     .block-container { 
-        max-width: 1100px !important; 
+        max-width: 1600px !important; 
         margin: 0 auto !important;
         padding-top: 2rem !important; 
         padding-bottom: 0rem !important; 
+        padding-left: 3rem !important;
+        padding-right: 3rem !important;
     }
 
     /* 상단 네이비 배너 */
@@ -77,11 +79,11 @@ st.markdown("""
     .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; font-size: 1.6rem !important; font-weight: 800; }
     .welcome-section p { color: #475569 !important; margin: 0; font-size: 1.05rem !important; line-height: 1.6; }
 
-    /* 🚨 2. 클릭 안되던 문제 해결: 진짜 버튼을 칩 모양으로 예쁘게 깎음 */
+    /* 클릭 버튼 디자인 */
     .quick-prompts-title { margin: 0 0 15px 0; font-size: 1.2rem !important; color: #1e293b !important; font-weight: 800;}
     div[data-testid="stButton"] button {
         background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 25px !important;
-        color: #005691 !important; font-weight: 600 !important; padding: 10px 18px !important;
+        color: #005691 !important; font-weight: 600 !important; padding: 12px 20px !important;
         display: flex !important; justify-content: flex-start !important; text-align: left !important;
         width: 100% !important; transition: all 0.2s ease-in-out; font-size: 0.95rem !important;
     }
@@ -101,16 +103,16 @@ st.markdown("""
     .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.05rem !important;}
     .answer-structure-content { color: #475569 !important; font-size: 0.95rem !important; line-height: 1.6; }
 
-    /* 🚨 3. 채팅창 길이를 상단 레이아웃과 일직선으로 완벽하게 맞춤 */
+    /* 🚨 채팅창 가로폭을 늘어난 상단 컨테이너 폭(1600px)에 완벽하게 맞춤 */
     div[data-testid="stChatInput"] { 
-        max-width: 1100px !important;  /* 상단 컨테이너 폭과 100% 동일하게 고정 */
+        max-width: 1600px !important;  
         margin: 0 auto !important; 
-        left: 0 !important; right: 0 !important; /* 중앙 정렬 강제 */
+        left: 0 !important; right: 0 !important; 
         padding-bottom: 25px !important;
         background-color: #f8f9fa !important;
     }
     div[data-testid="stChatInput"] > div {
-        margin: 0 !important; /* 기본 여백을 지워야 상단 박스와 일직선이 됨 */
+        margin: 0 3rem !important; /* 상단 컨테이너의 padding-left, right와 동일하게 맞춤 */
         border: 2px solid #cbd5e1 !important;
     }
     div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
@@ -118,13 +120,14 @@ st.markdown("""
     /* 모바일 반응형 */
     @media (max-width: 768px) {
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
-        .block-container { padding-top: 0.5rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+        .block-container { padding-top: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; }
         .dashboard-header { padding: 15px; margin-bottom: 15px; flex-direction: column; align-items: flex-start; gap: 10px;}
         .dashboard-header img { height: 35px !important; }
         .dashboard-header h1 { font-size: 1.3rem !important; }
         .welcome-section { padding: 20px; flex-direction: column; text-align: center; gap: 10px; margin-bottom: 15px;}
         div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 8px 12px !important; }
         div[data-testid="stChatInput"] { padding-bottom: 30px !important; }
+        div[data-testid="stChatInput"] > div { margin: 0 1rem !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -197,10 +200,9 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# 가운데 구멍을 최소화하기 위한 비율 조정 (1.6 : 1)
-main_col, answer_col = st.columns([1.6, 1], gap="large")
+# 넓어진 가로폭에 맞춰 2분할 레이아웃 적용
+main_col, answer_col = st.columns([2.2, 1], gap="large")
 
-# 🚨 클릭 시 검색을 실행할 임시 변수
 quick_query = None
 
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
@@ -228,7 +230,6 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    # 🚨 클릭 시 즉시 질문되는 진짜 버튼 (검색 모드에서만 보임)
     if mode == "🔍 인증 지침서 검색":
         st.markdown("<div class='quick-prompts-title'>💡 이렇게 질문해 보세요 (클릭 시 바로 검색됩니다)</div>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
