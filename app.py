@@ -18,13 +18,13 @@ except Exception:
 SET_PASSWORD = "0366" 
 
 st.set_page_config(
-    page_title="검단탑병원 인증조사 AI 도우미", 
+    page_title="검단탑병원 인증조사 AI 전문가", 
     page_icon="🏅", 
     layout="wide"
 )
 
 # ============================================================
-# 🎨 PC / 모바일 완전 분리 CSS (채팅창 커스텀 100% 삭제)
+# 🎨 PC / 모바일 완전 분리 CSS + 빈 공간 채우기 (추천 질문)
 # ============================================================
 st.markdown("""
 <style>
@@ -45,7 +45,7 @@ st.markdown("""
         max-width: 1200px !important; 
     }
 
-    /* 공통 배너 및 카드 스타일 (기본) */
+    /* 공통 배너 */
     .dashboard-header { 
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important; 
         padding: 15px 25px; 
@@ -71,19 +71,40 @@ st.markdown("""
     div[role="radiogroup"] label { font-weight: 700 !important; color: #475569 !important; padding: 5px 10px !important;}
     div[role="radiogroup"] label[data-baseweb="radio"]:has(input[checked]) * { color: #003366 !important; }
 
+    /* 환영 섹션 */
     .welcome-section {
         background-color: white !important;
-        padding: 20px;
+        padding: 25px;
         border-radius: 8px;
         border: 1px solid #e2e8f0;
         display: flex;
         align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
-    .welcome-section img { height: 50px !important; flex-shrink: 0; }
-    .welcome-section h2 { color: #111827 !important; margin: 0 0 8px 0; font-size: 1.3rem; font-weight: 800; }
-    .welcome-section p { color: #475569 !important; margin: 0; font-size: 0.95rem; }
+    .welcome-section img { height: 60px !important; flex-shrink: 0; }
+    .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; font-size: 1.4rem; font-weight: 800; }
+    .welcome-section p { color: #475569 !important; margin: 0; font-size: 1rem; line-height: 1.5; }
+
+    /* 💎 휑한 공간을 예쁘게 채워줄 추천 질문 섹션 */
+    .quick-prompts {
+        background-color: transparent;
+        padding: 10px 0 20px 0;
+        margin-bottom: 10px;
+    }
+    .quick-prompts h4 { margin: 0 0 15px 0; font-size: 1.1rem; color: #334155 !important; font-weight: 800;}
+    .prompt-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+    .prompt-chips span {
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        padding: 10px 18px;
+        border-radius: 25px;
+        font-size: 0.95rem;
+        color: #005691 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        font-weight: 600;
+    }
 
     /* 우측 AI 가이드 구조 */
     .answer-structure {
@@ -91,6 +112,7 @@ st.markdown("""
         padding: 20px;
         border-radius: 8px;
         border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     .answer-structure h3 { color: #003366 !important; margin: 0 0 15px 0; font-size: 1.1rem; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
     .answer-structure ul { list-style: none; padding: 0; margin: 0; }
@@ -99,29 +121,22 @@ st.markdown("""
     .answer-structure-content { color: #475569 !important; font-size: 0.9rem; line-height: 1.5; }
 
     /* =================================================== */
-    /* 📱 모바일 전용 UI (화면 너비 768px 이하일 때만 발동) */
-    /* 한눈에 다 들어오도록 불필요한 요소 제거 및 여백 압축 */
+    /* 📱 모바일 전용 UI */
     /* =================================================== */
     @media (max-width: 768px) {
-        /* 1. 모바일에서는 우측 가이드(두 번째 컬럼) 강제 숨김 */
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
-        
-        /* 2. 전체 여백 최소화 */
         .block-container { padding-top: 0.5rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
-        
-        /* 3. 배너 크기 축소 */
         .dashboard-header { padding: 10px; margin-bottom: 10px; }
         .dashboard-header img { height: 28px !important; }
         .dashboard-header h1 { font-size: 1.1rem !important; }
-        
-        /* 4. 환영 문구 최소화 및 세로 배치 */
-        .welcome-section { padding: 12px; margin-bottom: 10px; flex-direction: column; text-align: center; gap: 10px; }
-        .welcome-section img { height: 40px !important; }
-        .welcome-section h2 { font-size: 1.1rem !important; margin-bottom: 4px; }
-        .welcome-section p { font-size: 0.85rem !important; }
-        
-        /* 5. 라디오 버튼 여백 축소 */
+        .welcome-section { padding: 15px; margin-bottom: 15px; flex-direction: column; text-align: center; gap: 10px; }
+        .welcome-section img { height: 45px !important; }
+        .welcome-section h2 { font-size: 1.2rem !important; margin-bottom: 4px; }
+        .welcome-section p { font-size: 0.9rem !important; }
         div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) { padding: 5px !important; margin-bottom: 10px; }
+        
+        /* 모바일에서는 추천 칩 크기 조절 */
+        .prompt-chips span { padding: 8px 14px; font-size: 0.85rem; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -194,7 +209,7 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# PC에서는 2분할, 모바일에서는 우측(answer_col)이 CSS에 의해 강제 숨김 처리됨
+# PC: 2분할 레이아웃 / 모바일: 우측 가이드 자동 숨김 처리
 main_col, answer_col = st.columns([2.2, 1])
 
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
@@ -211,12 +226,26 @@ SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
 """
 
 with main_col:
+    # 환영 섹션
     st.markdown(f"""
     <div class='welcome-section'>
         {logo_html}
         <div>
             <h2>안녕하세요! 인증조사 AI 전문가입니다</h2>
             <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 훈련하세요.</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 💎 텅 빈 공간을 채워줄 추천 질문 섹션 추가
+    st.markdown("""
+    <div class='quick-prompts'>
+        <h4>💡 자주 묻는 핵심 질문</h4>
+        <div class='prompt-chips'>
+            <span>💬 낙상 발생 시 보고 절차는 어떻게 되나요?</span>
+            <span>💬 감염관리 위원회의 주요 역할은?</span>
+            <span>💬 병동 환경 점검 체크리스트 항목 알려줘</span>
+            <span>💬 심폐소생술(CPR) 교육 이수 기준은?</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -259,7 +288,7 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 하단 입력창 (스트림릿 순정 기능 사용 - 에러 절대 없음)
+# 하단 채팅창 (순정 폼 유지 - 에러 방지)
 if query := st.chat_input("질문하거나 답변하십시오..."):
     if mode == "🔍 인증 지침서 검색":
         st.session_state.search_msgs.append({"role": "user", "content": query})
