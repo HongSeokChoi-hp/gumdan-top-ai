@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인 수정] 상단 인터페이스 크기 대폭 확대 및 비율 조정
+# 🎨 [디자인 최종본] 레이아웃 밀착 + 채팅창 일직선 정렬 + 진짜 클릭 버튼 적용
 # ============================================================
 st.markdown("""
 <style>
@@ -39,165 +39,97 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* 전체 컨테이너 여백 조정 */
+    /* 🚨 1. 가운데 구멍 해결: 전체 가로폭 고정 및 중앙 정렬 */
     .block-container { 
-        padding-top: 1rem !important; /* 상단 딱 붙임 방지 */
+        max-width: 1100px !important; 
+        margin: 0 auto !important;
+        padding-top: 2rem !important; 
         padding-bottom: 0rem !important; 
-        max-width: 1400px !important; /* PC에서 너무 퍼지지 않게 가로폭 제한 */
     }
 
-    /* ⬆️ [확대] 상단 네이비 배너 */
+    /* 상단 네이비 배너 */
     .dashboard-header { 
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important; 
-        padding: 30px 40px; /* 🚨 상하좌우 여백 대폭 확대 */
-        border-radius: 12px; /* 둥글기 확대 */
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* 그림자 강화 */
-        display: flex;
-        align-items: center;
-        gap: 20px; /* 요소 간격 확대 */
-        margin-bottom: 25px; /* 하단 마진 확대 */
+        padding: 25px 35px; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        display: flex; align-items: center; gap: 20px; 
+        margin-bottom: 25px; 
     }
-    .dashboard-header img { 
-        height: 50px !important; /* 🚨 로고 크기 확대 */
-        flex-shrink: 0; 
-        background: white; 
-        padding: 5px; 
-        border-radius: 8px;
-    } 
+    .dashboard-header img { height: 45px !important; flex-shrink: 0; background: white; padding: 5px; border-radius: 8px;} 
     .dashboard-header * { color: #ffffff !important; } 
-    .dashboard-header h1 { 
-        margin: 0; 
-        font-size: 2rem !important; /* 🚨 타이틀 글자 크기 대폭 확대 */
-        font-weight: 800; 
-        letter-spacing: -1px !important;
-    }
+    .dashboard-header h1 { margin: 0; font-size: 1.8rem !important; font-weight: 800; letter-spacing: -1px !important;}
 
-    /* ⬆️ [확대] 라디오 버튼 (모드 선택) */
+    /* 모드 선택 라디오 버튼 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
-        background-color: #ffffff !important;
-        padding: 15px 25px !important; /* 🚨 여백 확대 */
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 25px; /* 하단 마진 확대 */
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        background-color: #ffffff !important; padding: 12px 20px !important; border-radius: 10px;
+        border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
-    div[role="radiogroup"] label { 
-        font-weight: 700 !important; 
-        color: #475569 !important; 
-        padding: 10px 20px !important; /* 🚨 탭 크기 확대 */
-        font-size: 1.1rem !important; /* 🚨 글자 크기 확대 */
-    }
+    div[role="radiogroup"] label { font-weight: 700 !important; color: #475569 !important; padding: 8px 16px !important; font-size: 1.05rem !important; }
     div[role="radiogroup"] label[data-baseweb="radio"]:has(input[checked]) * { color: #003366 !important; }
 
-    /* ⬆️ [확대] 환영 섹션 카드 */
+    /* 환영 섹션 */
     .welcome-section {
-        background-color: white !important;
-        padding: 40px; /* 🚨 여백 대폭 확대 */
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        gap: 30px; /* 🚨 간격 확대 */
-        margin-bottom: 35px; /* 下단 마진 확대 */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        background-color: white !important; padding: 35px; border-radius: 12px; border: 1px solid #e2e8f0;
+        display: flex; align-items: center; gap: 25px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
-    .welcome-section img { 
-        height: 90px !important; /* 🚨 로고 크기 대폭 확대 */
-        flex-shrink: 0; 
+    .welcome-section img { height: 75px !important; flex-shrink: 0; }
+    .welcome-section h2 { color: #111827 !important; margin: 0 0 10px 0; font-size: 1.6rem !important; font-weight: 800; }
+    .welcome-section p { color: #475569 !important; margin: 0; font-size: 1.05rem !important; line-height: 1.6; }
+
+    /* 🚨 2. 클릭 안되던 문제 해결: 진짜 버튼을 칩 모양으로 예쁘게 깎음 */
+    .quick-prompts-title { margin: 0 0 15px 0; font-size: 1.2rem !important; color: #1e293b !important; font-weight: 800;}
+    div[data-testid="stButton"] button {
+        background-color: #ffffff !important; border: 1px solid #cbd5e1 !important; border-radius: 25px !important;
+        color: #005691 !important; font-weight: 600 !important; padding: 10px 18px !important;
+        display: flex !important; justify-content: flex-start !important; text-align: left !important;
+        width: 100% !important; transition: all 0.2s ease-in-out; font-size: 0.95rem !important;
     }
-    .welcome-section h2 { 
-        color: #111827 !important; 
-        margin: 0 0 15px 0; /* 下단 간격 확대 */
-        font-size: 1.8rem !important; /* 🚨 글자 크기 대폭 확대 */
-        font-weight: 800; 
-        line-height: 1.3;
-    }
-    .welcome-section p { 
-        color: #475569 !important; 
-        margin: 0; 
-        font-size: 1.15rem !important; /* 🚨 본문 글자 크기 확대 */
-        line-height: 1.6; 
+    div[data-testid="stButton"] button:hover {
+        border-color: #005691 !important; background-color: #f0f9ff !important;
+        transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
 
-    /* ⬆️ [확대] 자주 묻는 질문 (추천 질문 칩) */
-    .quick-prompts {
-        background-color: transparent;
-        padding: 10px 0 30px 0; /* 🚨 하단 여백 확대 */
-        margin-bottom: 20px;
-    }
-    .quick-prompts h4 { 
-        margin: 0 0 20px 0; /* 🚨 간격 확대 */
-        font-size: 1.3rem !important; /* 🚨 제목 크기 확대 */
-        color: #1e293b !important; 
-        font-weight: 800;
-    }
-    .prompt-chips { display: flex; gap: 15px; flex-wrap: wrap; }
-    .prompt-chips span {
-        background-color: #ffffff;
-        border: 1px solid #cbd5e1;
-        padding: 14px 24px; /* 🚨 칩 크기 대폭 확대 (상하/좌우) */
-        border-radius: 30px; /* 🚨 더 둥글게 */
-        font-size: 1.05rem !important; /* 🚨 글자 크기 확대 */
-        color: #005691 !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-        font-weight: 600;
-        transition: all 0.2s;
-        cursor: pointer;
-    }
-    .prompt-chips span:hover {
-        border-color: #005691;
-        background-color: #f0f9ff;
-        transform: translateY(-2px);
-    }
-
-    /* 우측 AI 가이드 구조 (유지하되 크기 살짝 조정) */
+    /* 우측 AI 가이드 */
     .answer-structure {
-        background-color: white !important;
-        padding: 30px; /* 🚨 여백 확대 */
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
+        background-color: white !important; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     }
-    .answer-structure h3 { color: #003366 !important; margin: 0 0 20px 0; font-size: 1.25rem !important; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+    .answer-structure h3 { color: #003366 !important; margin: 0 0 18px 0; font-size: 1.15rem !important; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
     .answer-structure ul { list-style: none; padding: 0; margin: 0; }
-    .answer-structure li { margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #005691; }
-    .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.1rem !important;}
-    .answer-structure-content { color: #475569 !important; font-size: 1rem !important; line-height: 1.6; }
+    .answer-structure li { margin-bottom: 18px; background: #f8f9fa; padding: 18px; border-radius: 10px; border-left: 5px solid #005691; }
+    .answer-structure-title { font-weight: 700; color: #005691 !important; margin-bottom: 8px; font-size: 1.05rem !important;}
+    .answer-structure-content { color: #475569 !important; font-size: 0.95rem !important; line-height: 1.6; }
 
-    /* 채팅 메시지 영역 (글자 크기 미세 조정) */
-    [data-testid="stChatMessage"] { 
-        padding: 20px 25px; 
-        font-size: 1rem !important;
-        line-height: 1.7;
+    /* 🚨 3. 채팅창 길이를 상단 레이아웃과 일직선으로 완벽하게 맞춤 */
+    div[data-testid="stChatInput"] { 
+        max-width: 1100px !important;  /* 상단 컨테이너 폭과 100% 동일하게 고정 */
+        margin: 0 auto !important; 
+        left: 0 !important; right: 0 !important; /* 중앙 정렬 강제 */
+        padding-bottom: 25px !important;
+        background-color: #f8f9fa !important;
     }
+    div[data-testid="stChatInput"] > div {
+        margin: 0 !important; /* 기본 여백을 지워야 상단 박스와 일직선이 됨 */
+        border: 2px solid #cbd5e1 !important;
+    }
+    div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
 
-    /* =================================================== */
-    /* 📱 모바일 전용 UI (모바일에서는 크기 적절히 조절) */
-    /* =================================================== */
+    /* 모바일 반응형 */
     @media (max-width: 768px) {
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
         .block-container { padding-top: 0.5rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
-        
-        .dashboard-header { padding: 20px; margin-bottom: 15px; gap: 10px; }
+        .dashboard-header { padding: 15px; margin-bottom: 15px; flex-direction: column; align-items: flex-start; gap: 10px;}
         .dashboard-header img { height: 35px !important; }
         .dashboard-header h1 { font-size: 1.3rem !important; }
-        
-        .welcome-section { padding: 25px 20px; margin-bottom: 20px; flex-direction: column; text-align: center; gap: 15px; }
-        .welcome-section img { height: 60px !important; }
-        .welcome-section h2 { font-size: 1.4rem !important; margin-bottom: 8px; }
-        .welcome-section p { font-size: 1rem !important; }
-        
-        div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) { padding: 10px !important; margin-bottom: 15px; }
-        div[role="radiogroup"] label { padding: 8px 12px !important; font-size: 1rem !important; }
-
-        .quick-prompts h4 { font-size: 1.15rem !important; margin-bottom: 15px; }
-        .prompt-chips { gap: 10px; }
-        .prompt-chips span { padding: 10px 16px; font-size: 0.9rem !important; }
+        .welcome-section { padding: 20px; flex-direction: column; text-align: center; gap: 10px; margin-bottom: 15px;}
+        div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 8px 12px !important; }
+        div[data-testid="stChatInput"] { padding-bottom: 30px !important; }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 [인증] 로그인 로직 (유지)
+# 🔐 [인증] 로그인 로직
 if not st.session_state.get("authenticated", False):
     st.write("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
@@ -213,7 +145,7 @@ if not st.session_state.get("authenticated", False):
             st.error("❌ 보안 코드가 일치하지 않습니다.")
     st.stop()
 
-# 🧠 [엔진] DB 로드 (유지)
+# 🧠 [엔진] DB 로드
 @st.cache_resource
 def load_intelligent_db():
     if not os.path.exists("faiss_index_saved"): 
@@ -248,7 +180,7 @@ if os.path.exists("검단탑병원-로고_고화질.png"):
         encoded_string = base64.b64encode(image_file.read()).decode()
         logo_html = f"<img src='data:image/png;base64,{encoded_string}'>"
 
-# 상단 배너 (크기 확대 적용됨)
+# 상단 배너
 st.markdown(f"""
 <div class='dashboard-header'>
     {logo_html}
@@ -265,8 +197,11 @@ if "search_msgs" not in st.session_state: st.session_state.search_msgs = []
 if "train_msgs" not in st.session_state: st.session_state.train_msgs = []
 if "current_q" not in st.session_state: st.session_state.current_q = None
 
-# PC: 2분할 레이아웃 / 모바일: 우측 가이드 자동 숨김 처리
-main_col, answer_col = st.columns([2.2, 1])
+# 가운데 구멍을 최소화하기 위한 비율 조정 (1.6 : 1)
+main_col, answer_col = st.columns([1.6, 1], gap="large")
+
+# 🚨 클릭 시 검색을 실행할 임시 변수
+quick_query = None
 
 SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다. 
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
@@ -282,7 +217,7 @@ SYS_RULE = """당신은 '검단탑병원 인증조사 AI 전문가'입니다.
 """
 
 with main_col:
-    # 환영 섹션 (크기 확대 적용됨)
+    # 환영 섹션
     st.markdown(f"""
     <div class='welcome-section'>
         {logo_html}
@@ -293,22 +228,21 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    # 💎 자주 묻는 질문 섹션 (칩 크기 확대 적용됨)
-    st.markdown("""
-    <div class='quick-prompts'>
-        <h4>💡 이렇게 질문해 보세요 (클릭하여 복사)</h4>
-        <div class='prompt-chips'>
-            <span>💬 낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?</span>
-            <span>💬 근접오류(Near Miss) 정의와 보고 활성화 방안은?</span>
-            <span>💬 감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?</span>
-            <span>💬 병동 환경 점검 체크리스트 필수 항목을 알려주세요.</span>
-            <span>💬 직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?</span>
-            <span>💬 화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘.</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
+    # 🚨 클릭 시 즉시 질문되는 진짜 버튼 (검색 모드에서만 보임)
     if mode == "🔍 인증 지침서 검색":
+        st.markdown("<div class='quick-prompts-title'>💡 이렇게 질문해 보세요 (클릭 시 바로 검색됩니다)</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("💬 낙상 발생 보고 절차 및 타임라인", use_container_width=True): quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
+            if st.button("💬 감염관리 위원회 구성 요건과 역할", use_container_width=True): quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
+            if st.button("💬 직원의 심폐소생술(CPR) 이수 기준", use_container_width=True): quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
+        with c2:
+            if st.button("💬 근접오류(Near Miss) 보고 활성화", use_container_width=True): quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
+            if st.button("💬 병동 환경 점검 필수 체크리스트", use_container_width=True): quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
+            if st.button("💬 화재 발생 시 매뉴얼 (R.A.C.E.)", use_container_width=True): quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
+        
+        st.write("<br>", unsafe_allow_html=True)
+        
         for m in st.session_state.search_msgs:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
@@ -317,16 +251,15 @@ with main_col:
         if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
             with st.chat_message("assistant"):
                 with st.spinner("💭 감독관이 지침서를 분석하여 질문을 생성 중..."):
-                    random_docs = vdb.similarity_search(random.choice(["지침", "규정", "절차"]), k=3)
+                    random_docs = vdb.similarity_search(random.choice(["지침", "규정"]), k=3)
                     sample_ctx = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in random_docs])
-                    q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요. 특정 상황을 가정해도 좋습니다.\n내용:\n{sample_ctx}")
+                    q_stream = get_intelligent_response(f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요.\n내용:\n{sample_ctx}")
                     st.session_state.current_q = st.write_stream(q_stream)
                     st.session_state.train_msgs.append({"role": "assistant", "content": st.session_state.current_q})
         for m in st.session_state.train_msgs:
             with st.chat_message(m["role"]): st.markdown(m["content"])
 
 with answer_col:
-    # 우측 답변 가이드 (크기 미세 조정)
     st.markdown(f"""
     <div class='answer-structure'>
         <h3>🌟 AI 표준 답변 가이드</h3>
@@ -347,29 +280,34 @@ with answer_col:
     </div>
     """, unsafe_allow_html=True)
 
-# 하단 채팅창 프로세스 (유지)
-if query := st.chat_input("인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오..."):
+# 하단 채팅창 (타이핑 입력값 또는 버튼 클릭값 모두 받음)
+chat_input_query = st.chat_input("인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오...")
+
+# 사용자가 직접 쳤거나, 버튼을 눌렀다면 둘 중 하나를 최종 검색어로 인식
+final_query = chat_input_query or quick_query
+
+if final_query:
     if mode == "🔍 인증 지침서 검색":
-        st.session_state.search_msgs.append({"role": "user", "content": query})
-        with st.chat_message("user"): st.markdown(query)
+        st.session_state.search_msgs.append({"role": "user", "content": final_query})
+        with st.chat_message("user"): st.markdown(final_query)
         with st.chat_message("assistant"):
-            with st.spinner("💭 지침서를 분석하며 페이지 번호와 함께 답변을 정리 중..."):
+            with st.spinner("💭 지침서를 분석하며 답변을 정리 중..."):
                 try:
-                    docs = vdb.similarity_search(query, k=15) # 검색 정확도 향상을 위해 k값 증가
+                    docs = vdb.similarity_search(final_query, k=15)
                     ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
-                    full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {query}"))
+                    full_ans = st.write_stream(get_intelligent_response(f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {final_query}"))
                     st.session_state.search_msgs.append({"role": "assistant", "content": full_ans})
                 except Exception as e: st.error(f"🚨 오류: {e}")
     else:
         if st.session_state.current_q:
-            st.session_state.train_msgs.append({"role": "user", "content": query})
-            with st.chat_message("user"): st.markdown(query)
+            st.session_state.train_msgs.append({"role": "user", "content": final_query})
+            with st.chat_message("user"): st.markdown(final_query)
             with st.chat_message("assistant"):
                 with st.spinner("💭 답변을 기반으로 지침서 부합 여부 채점 중..."):
                     try:
                         docs = vdb.similarity_search(st.session_state.current_q, k=10)
                         ctx_str = "\n\n".join([f"[문서 메타데이터: {d.metadata}]\n{d.page_content}" for d in docs])
-                        full_ans = st.write_stream(get_intelligent_response(f"인증평가 감독관 시선에서 직원의 답변 채점 및 보완. 실제 지침서 내용 기반 피드백.\n질문: {st.session_state.current_q}\n직원 답변: {query}\n지침 데이터:\n{ctx_str}"))
+                        full_ans = st.write_stream(get_intelligent_response(f"인증평가 감독관 시선에서 직원의 답변 채점 및 보완. 실제 지침서 내용 기반 피드백.\n질문: {st.session_state.current_q}\n직원 답변: {final_query}\n지침 데이터:\n{ctx_str}"))
                         st.session_state.train_msgs.append({"role": "assistant", "content": full_ans})
                         st.session_state.current_q = None
                     except Exception as e: st.error(f"🚨 오류: {e}")
