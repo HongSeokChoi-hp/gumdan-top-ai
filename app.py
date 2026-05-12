@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] PC 원본 유지 + 모바일 전용 채팅창 리셋 코드 추가
+# 🎨 [디자인] PC 1800px 유지 + 모바일 글씨 잘림 및 시커먼 배경 완벽 해결
 # ============================================================
 st.markdown("""
 <style>
@@ -40,7 +40,7 @@ st.markdown("""
     [data-testid="stHeader"] { display: none !important; height: 0px !important; }
     #creatorBadge, .viewerBadge_container__1QSob, .stDeployButton, footer { display: none !important; visibility: hidden !important; }
     
-    /* [PC 버전] 가로폭 1800px 유지 */
+    /* 🚨 [PC 버전] 가로폭 1800px 유지 (절대 손대지 않음) */
     .block-container { 
         max-width: 1800px !important; 
         margin: 0 auto !important;
@@ -118,31 +118,64 @@ st.markdown("""
     }
     div[data-testid="stChatInput"] > div:focus-within { border-color: #005691 !important; }
 
-    /* 📱 [모바일 버전] 전용 독립 디자인 (PC 설정 완전 분리/초기화) */
+    /* ============================================================ */
+    /* 📱 [모바일 버전] 시커먼 배경 및 글씨 잘림 완벽 리셋 */
+    /* ============================================================ */
     @media (max-width: 768px) {
         div[data-testid="column"]:nth-of-type(2) { display: none !important; }
-        .block-container { padding-top: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; }
-        .dashboard-header { padding: 15px; margin-bottom: 15px; flex-direction: column; align-items: flex-start; gap: 10px;}
-        .dashboard-header img { height: 35px !important; }
-        .dashboard-header h1 { font-size: 1.3rem !important; }
-        .welcome-section { padding: 20px; flex-direction: column; text-align: center; gap: 10px; margin-bottom: 15px;}
-        div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 8px 12px !important; }
+        .block-container { 
+            padding-top: 0.5rem !important; 
+            padding-left: 1rem !important; 
+            padding-right: 1rem !important; 
+            overflow-x: hidden !important; /* 가로 스크롤 방지 */
+        }
         
-        /* 🚨 모바일 채팅창: PC의 넓은 여백과 검정 박스 현상 완벽 제거 */
-        div[data-testid="stChatInput"] { 
-            padding-bottom: 25px !important; 
+        /* 헤더 모바일 정렬 */
+        .dashboard-header { padding: 15px; margin-bottom: 15px; flex-direction: column; align-items: center; text-align: center; gap: 10px;}
+        .dashboard-header img { height: 35px !important; }
+        .dashboard-header h1 { font-size: 1.3rem !important; white-space: normal !important; word-break: keep-all !important; }
+
+        /* 환영 섹션 모바일 정렬 (글씨 잘림 해결) */
+        .welcome-section { padding: 20px 15px; flex-direction: column; text-align: center; gap: 15px; margin-bottom: 15px;}
+        .welcome-section img { height: 55px !important; }
+        .welcome-section h2 { font-size: 1.3rem !important; margin-bottom: 5px; white-space: normal !important; word-break: keep-all !important;}
+        .welcome-section p { font-size: 0.95rem !important; white-space: normal !important; word-break: keep-all !important;}
+        
+        /* 버튼 크기 조정 */
+        div[data-testid="stButton"] button { font-size: 0.85rem !important; padding: 10px 12px !important; }
+        
+        /* 🚨 모바일 하단 거대한 검은색 배경(다크모드 찌꺼기) 완벽 차단 */
+        [data-testid="stBottomBlock"],
+        div[data-testid="stChatInputContainer"] {
+            background: #f8f9fa !important;
             background-color: #f8f9fa !important;
         }
-        div[data-testid="stChatInput"] > div { 
-            margin: 0 5px !important; /* 모바일에 맞춘 얇은 여백 */
-            border: 1px solid #cbd5e1 !important; /* 테두리 얇게 리셋 */
-            background-color: #ffffff !important; /* 순백색 강제 적용 (검은 박스 방지) */
-            border-radius: 20px !important;
+        
+        div[data-testid="stChatInput"] { 
+            padding-bottom: 20px !important; 
+            background: transparent !important;
+            background-color: transparent !important;
         }
+        
+        /* 채팅창 껍데기를 순백색으로 */
+        div[data-testid="stChatInput"] > div { 
+            margin: 0 !important; 
+            background-color: #ffffff !important; 
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 20px !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+        }
+        
+        /* 내부 텍스트 에어리어 검정 현상 차단 */
+        div[data-testid="stChatInput"] div[data-baseweb="base-input"],
         div[data-testid="stChatInput"] textarea {
+            background-color: transparent !important;
             color: #111827 !important;
             -webkit-text-fill-color: #111827 !important;
-            background-color: transparent !important;
+        }
+        div[data-testid="stChatInput"] textarea::placeholder {
+            color: #94a3b8 !important;
+            -webkit-text-fill-color: #94a3b8 !important;
         }
     }
 </style>
@@ -221,7 +254,7 @@ main_col, answer_col = st.columns([2.2, 1], gap="large")
 
 quick_query = None
 
-# 🚨 파일명 출력 원천 차단을 위한 프롬프트 강화
+# 🚨 파일명 출력 원천 차단을 위한 프롬프트 (유지)
 SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다. 
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
@@ -336,7 +369,7 @@ if final_query:
                 with st.spinner("💭 답변을 기반으로 지침서 부합 여부 채점 중..."):
                     try:
                         docs = vdb.similarity_search(st.session_state.current_q, k=10)
-                        # 🚨 여기도 파일명 차단
+                        # 🚨 파일명 차단
                         ctx_list = []
                         for d in docs:
                             p_val = d.metadata.get('page', '')
