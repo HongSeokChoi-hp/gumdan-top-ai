@@ -25,28 +25,39 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] PC 유지 + 모바일 전용 압축 UX + 다크모드 무력화
+# 🎨 [디자인] PC 고급 레이아웃 + 모바일 별도 압축 UX
 # ============================================================
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    :root {
+        color-scheme: light !important;
+    }
+
+    html,
+    body {
+        color-scheme: light !important;
+        background-color: #f8f9fa !important;
+    }
 
     * {
         font-family: 'Pretendard', sans-serif;
         box-sizing: border-box;
     }
 
-    /* 전체 기본 배경 */
     .stApp,
-    [data-testid="stAppViewContainer"] {
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"] {
         background-color: #f8f9fa !important;
-    }
-
-    p, span, div, li, h1, h2, h3, h4 {
         color: #111827 !important;
     }
 
-    /* 방해 요소 제거 */
+    p, span, div, li, h1, h2, h3, h4, h5, label {
+        color: #111827 !important;
+    }
+
     [data-testid="stSidebar"],
     [data-testid="collapsedControl"] {
         display: none !important;
@@ -66,19 +77,18 @@ st.markdown("""
     }
 
     /* ============================================================ */
-    /* 🖥️ PC 화면: 기존 레이아웃 유지 */
+    /* 🖥️ PC 레이아웃 */
     /* ============================================================ */
 
     .block-container {
         max-width: 1800px !important;
         margin: 0 auto !important;
         padding-top: 2rem !important;
-        padding-bottom: 0rem !important;
+        padding-bottom: 7rem !important;
         padding-left: 3rem !important;
         padding-right: 3rem !important;
     }
 
-    /* 상단 배너 */
     .dashboard-header {
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important;
         padding: 25px 35px;
@@ -93,7 +103,7 @@ st.markdown("""
     .dashboard-header img {
         height: 45px !important;
         flex-shrink: 0;
-        background: white;
+        background: #ffffff;
         padding: 5px;
         border-radius: 8px;
     }
@@ -109,7 +119,6 @@ st.markdown("""
         letter-spacing: -1px !important;
     }
 
-    /* 모드 선택 탭 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         background-color: #ffffff !important;
         padding: 12px 20px !important;
@@ -117,6 +126,7 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         margin-bottom: 25px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        overflow: hidden !important;
     }
 
     div[role="radiogroup"] label {
@@ -130,44 +140,52 @@ st.markdown("""
         color: #003366 !important;
     }
 
-    /* 환영 섹션 */
     .welcome-section {
-        background-color: white !important;
-        padding: 35px;
+        background-color: #ffffff !important;
+        padding: 30px 32px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
+        min-height: 190px;
         display: flex;
-        align-items: center;
-        gap: 25px;
-        margin-bottom: 30px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    }
-
-    .welcome-section img {
-        height: 75px !important;
-        flex-shrink: 0;
     }
 
     .welcome-section h2 {
         color: #111827 !important;
-        margin: 0 0 10px 0;
-        font-size: 1.6rem !important;
+        margin: 0;
+        font-size: 1.55rem !important;
         font-weight: 800;
+        letter-spacing: -0.6px;
+        line-height: 1.35;
     }
 
     .welcome-section p {
         color: #475569 !important;
         margin: 0;
-        font-size: 1.05rem !important;
-        line-height: 1.6;
+        font-size: 1.03rem !important;
+        line-height: 1.65;
+        word-break: keep-all;
     }
 
-    /* 추천 질문 버튼 */
+    .quick-card {
+        background-color: #ffffff !important;
+        padding: 24px 26px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        min-height: 190px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
     .quick-prompts-title {
-        margin: 0 0 15px 0;
-        font-size: 1.2rem !important;
+        margin: 0 0 14px 0;
+        font-size: 1.12rem !important;
         color: #1e293b !important;
         font-weight: 800;
+        letter-spacing: -0.3px;
     }
 
     div[data-testid="stButton"] button {
@@ -176,13 +194,14 @@ st.markdown("""
         border-radius: 25px !important;
         color: #005691 !important;
         font-weight: 600 !important;
-        padding: 12px 20px !important;
+        padding: 11px 18px !important;
         display: flex !important;
-        justify-content: flex-start !important;
-        text-align: left !important;
+        justify-content: center !important;
+        text-align: center !important;
         width: 100% !important;
         transition: all 0.2s ease-in-out;
-        font-size: 0.95rem !important;
+        font-size: 0.93rem !important;
+        line-height: 1.25 !important;
     }
 
     div[data-testid="stButton"] button:hover {
@@ -192,9 +211,8 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
 
-    /* 우측 AI 가이드 */
     .answer-structure {
-        background-color: white !important;
+        background-color: #ffffff !important;
         padding: 25px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
@@ -237,7 +255,6 @@ st.markdown("""
         line-height: 1.6;
     }
 
-    /* PC 하단 채팅창 */
     div[data-testid="stChatInput"] {
         max-width: 1800px !important;
         margin: 0 auto !important;
@@ -251,23 +268,49 @@ st.markdown("""
         margin: 0 3rem !important;
         border: 2px solid #cbd5e1 !important;
         background-color: #ffffff !important;
+        color: #111827 !important;
     }
 
     div[data-testid="stChatInput"] > div:focus-within {
         border-color: #005691 !important;
     }
 
+    div[data-testid="stChatInput"] textarea {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        -webkit-text-fill-color: #111827 !important;
+    }
+
+    div[data-testid="stChatInput"] textarea::placeholder {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important;
+        opacity: 1 !important;
+    }
+
     /* ============================================================ */
-    /* 📱 모바일 화면: PC 구성 유지 + 모바일 전용 압축 레이아웃 */
+    /* 📱 모바일 전용 UX */
     /* ============================================================ */
     @media (max-width: 768px) {
+
+        :root,
+        html,
+        body {
+            color-scheme: light !important;
+            background: #f8f9fa !important;
+            background-color: #f8f9fa !important;
+        }
 
         html,
         body,
         .stApp,
         [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"],
+        [data-testid="stBottom"],
         [data-testid="stBottomBlock"],
+        [data-testid="stBottomBlockContainer"],
         div[data-testid="stChatInputContainer"] {
+            background: #f8f9fa !important;
             background-color: #f8f9fa !important;
             color: #111827 !important;
         }
@@ -277,39 +320,20 @@ st.markdown("""
             box-sizing: border-box !important;
         }
 
-        p, span, div, li, h1, h2, h3, h4, label {
+        p, span, div, li, h1, h2, h3, h4, h5, label {
             color: #111827 !important;
         }
 
         .block-container {
             max-width: 100% !important;
-            padding-top: 0.45rem !important;
-            padding-left: 0.65rem !important;
-            padding-right: 0.65rem !important;
-            padding-bottom: 5.8rem !important;
+            padding-top: 0.55rem !important;
+            padding-left: 0.7rem !important;
+            padding-right: 0.7rem !important;
+            padding-bottom: 6.2rem !important;
             overflow-x: hidden !important;
         }
 
-        /* 모바일에서는 모든 컬럼을 세로로 표시 */
-        div[data-testid="column"] {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 100% !important;
-            display: block !important;
-        }
-
-        /* 우측 AI 가이드 숨김 방지 */
-        div[data-testid="column"]:nth-of-type(2) {
-            display: block !important;
-        }
-
-        div[data-testid="stHorizontalBlock"] {
-            gap: 0.55rem !important;
-        }
-
-        /* 상단 배너 */
         .dashboard-header {
-            height: auto !important;
             min-height: 54px !important;
             padding: 10px 12px !important;
             margin-bottom: 8px !important;
@@ -319,6 +343,7 @@ st.markdown("""
             align-items: center !important;
             justify-content: flex-start !important;
             gap: 10px !important;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12) !important;
         }
 
         .dashboard-header img {
@@ -338,84 +363,109 @@ st.markdown("""
             letter-spacing: -0.5px !important;
         }
 
-        /* 모드 선택 */
         div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
-            padding: 7px 9px !important;
+            padding: 6px 7px !important;
             margin-bottom: 8px !important;
-            border-radius: 9px !important;
+            border-radius: 10px !important;
             background-color: #ffffff !important;
             border: 1px solid #dbe3ef !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+            overflow: hidden !important;
         }
 
         div[role="radiogroup"] {
-            gap: 4px !important;
+            display: flex !important;
             flex-wrap: nowrap !important;
+            gap: 2px !important;
+            width: 100% !important;
+            overflow: hidden !important;
         }
 
         div[role="radiogroup"] label {
-            padding: 5px 6px !important;
-            font-size: 0.72rem !important;
-            line-height: 1.15 !important;
-            font-weight: 700 !important;
+            flex: 1 1 50% !important;
+            min-width: 0 !important;
+            padding: 5px 3px !important;
+            font-size: 0.68rem !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
             white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            border-radius: 8px !important;
         }
 
-        /* 환영 섹션 */
+        div[role="radiogroup"] label * {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+        }
+
         .welcome-section {
-            padding: 12px 12px !important;
-            margin-bottom: 9px !important;
+            padding: 10px 12px !important;
+            margin-bottom: 0 !important;
             border-radius: 10px !important;
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 10px !important;
+            min-height: auto !important;
             background-color: #ffffff !important;
-        }
-
-        .welcome-section img {
-            height: 42px !important;
-            width: auto !important;
-            flex-shrink: 0 !important;
+            border: 1px solid #dbe3ef !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+            display: block !important;
         }
 
         .welcome-section h2 {
-            font-size: 0.98rem !important;
+            font-size: 0.95rem !important;
             line-height: 1.22 !important;
             margin: 0 0 4px 0 !important;
             word-break: keep-all !important;
+            letter-spacing: -0.4px !important;
         }
 
         .welcome-section p {
-            font-size: 0.72rem !important;
-            line-height: 1.35 !important;
+            font-size: 0.7rem !important;
+            line-height: 1.32 !important;
             margin: 0 !important;
             word-break: keep-all !important;
+            color: #475569 !important;
         }
 
         .welcome-section br {
             display: none !important;
         }
 
-        /* 추천 질문 */
+        .quick-card {
+            padding: 10px 10px 9px 10px !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            border-radius: 10px !important;
+            min-height: auto !important;
+            background-color: #ffffff !important;
+            border: 1px solid #dbe3ef !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+        }
+
         .quick-prompts-title {
-            font-size: 0.88rem !important;
-            line-height: 1.2 !important;
+            font-size: 0.82rem !important;
+            line-height: 1.15 !important;
             margin: 0 0 6px 0 !important;
             font-weight: 800 !important;
+            letter-spacing: -0.4px !important;
         }
 
         div[data-testid="stButton"] {
-            margin-bottom: 4px !important;
+            margin-bottom: 2px !important;
         }
 
         div[data-testid="stButton"] button {
-            min-height: 32px !important;
-            height: 32px !important;
-            padding: 5px 10px !important;
-            border-radius: 16px !important;
-            font-size: 0.72rem !important;
-            line-height: 1.15 !important;
-            font-weight: 700 !important;
+            min-height: 25px !important;
+            height: 25px !important;
+            padding: 3px 7px !important;
+            border-radius: 14px !important;
+            font-size: 0.63rem !important;
+            line-height: 1.05 !important;
+            font-weight: 800 !important;
             color: #005691 !important;
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
@@ -427,66 +477,80 @@ st.markdown("""
             text-overflow: ellipsis !important;
         }
 
+        div[data-testid="stButton"] button p {
+            font-size: 0.63rem !important;
+            line-height: 1.05 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
         div[data-testid="stButton"] button:hover {
             transform: none !important;
             box-shadow: none !important;
         }
 
-        /* AI 표준 답변 가이드 */
         .answer-structure {
-            padding: 12px !important;
-            margin-top: 6px !important;
-            margin-bottom: 8px !important;
+            padding: 9px 10px !important;
+            margin-top: 0 !important;
+            margin-bottom: 4px !important;
             border-radius: 10px !important;
             background-color: #ffffff !important;
             border: 1px solid #dbe3ef !important;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
         }
 
         .answer-structure h3 {
-            font-size: 0.92rem !important;
-            line-height: 1.2 !important;
-            margin: 0 0 8px 0 !important;
-            padding-bottom: 7px !important;
+            font-size: 0.82rem !important;
+            line-height: 1.15 !important;
+            margin: 0 0 6px 0 !important;
+            padding-bottom: 5px !important;
             border-bottom: 1px solid #edf2f7 !important;
+            letter-spacing: -0.4px !important;
         }
 
         .answer-structure ul {
             display: grid !important;
-            grid-template-columns: 1fr !important;
-            gap: 6px !important;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            gap: 4px !important;
             margin: 0 !important;
             padding: 0 !important;
         }
 
         .answer-structure li {
             margin-bottom: 0 !important;
-            padding: 9px 10px !important;
-            border-radius: 9px !important;
-            border-left: 4px solid #005691 !important;
+            padding: 6px 6px !important;
+            border-radius: 8px !important;
+            border-left: 3px solid #005691 !important;
             background-color: #f8fafc !important;
+            min-height: 58px !important;
         }
 
         .answer-structure-title {
-            font-size: 0.82rem !important;
-            line-height: 1.2 !important;
-            margin-bottom: 4px !important;
+            font-size: 0.64rem !important;
+            line-height: 1.1 !important;
+            margin-bottom: 3px !important;
             font-weight: 800 !important;
             color: #005691 !important;
+            letter-spacing: -0.3px !important;
         }
 
         .answer-structure-content {
-            font-size: 0.7rem !important;
-            line-height: 1.35 !important;
+            font-size: 0.55rem !important;
+            line-height: 1.22 !important;
             color: #475569 !important;
             word-break: keep-all !important;
+            letter-spacing: -0.25px !important;
         }
 
         .answer-structure-content br {
             display: none !important;
         }
 
-        /* 채팅 메시지 */
+        .element-container {
+            margin-bottom: 0.28rem !important;
+        }
+
         div[data-testid="stChatMessage"] {
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
@@ -501,33 +565,47 @@ st.markdown("""
             color: #111827 !important;
         }
 
-        /* 하단 채팅창: 흰색 바탕 + 검은 글씨 */
         div[data-testid="stChatInput"] {
             max-width: 100% !important;
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
-            padding: 8px 10px 12px 10px !important;
+            padding: 7px 10px calc(9px + env(safe-area-inset-bottom)) 10px !important;
+            background: #f8f9fa !important;
             background-color: #f8f9fa !important;
             border-top: 1px solid #e2e8f0 !important;
+            box-shadow: 0 -3px 12px rgba(15, 23, 42, 0.06) !important;
         }
 
         div[data-testid="stChatInput"] > div {
             margin: 0 !important;
+            background: #ffffff !important;
             background-color: #ffffff !important;
             border: 1.5px solid #cbd5e1 !important;
             border-radius: 16px !important;
-            min-height: 44px !important;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08) !important;
+            min-height: 42px !important;
+            box-shadow: 0 2px 9px rgba(15, 23, 42, 0.08) !important;
+            color: #111827 !important;
         }
 
-        div[data-testid="stChatInput"] div[data-baseweb="base-input"],
+        div[data-testid="stChatInput"] div,
+        div[data-testid="stChatInput"] section,
+        div[data-testid="stChatInput"] form,
+        div[data-testid="stChatInput"] label,
+        div[data-testid="stChatInput"] div[data-baseweb="base-input"] {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #111827 !important;
+        }
+
         div[data-testid="stChatInput"] textarea {
+            background: #ffffff !important;
             background-color: #ffffff !important;
             color: #111827 !important;
             -webkit-text-fill-color: #111827 !important;
-            font-size: 0.88rem !important;
-            line-height: 1.3 !important;
+            caret-color: #111827 !important;
+            font-size: 0.86rem !important;
+            line-height: 1.25 !important;
         }
 
         div[data-testid="stChatInput"] textarea::placeholder {
@@ -539,9 +617,9 @@ st.markdown("""
         div[data-testid="stChatInput"] button {
             background-color: #005691 !important;
             border-radius: 50% !important;
-            width: 34px !important;
-            height: 34px !important;
-            min-width: 34px !important;
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
             margin-right: 4px !important;
             padding: 6px !important;
         }
@@ -549,16 +627,12 @@ st.markdown("""
         div[data-testid="stChatInput"] button svg {
             fill: #ffffff !important;
             color: #ffffff !important;
-            width: 18px !important;
-            height: 18px !important;
-        }
-
-        .element-container {
-            margin-bottom: 0.35rem !important;
+            width: 17px !important;
+            height: 17px !important;
         }
 
         hr {
-            margin: 0.4rem 0 !important;
+            margin: 0.35rem 0 !important;
         }
     }
 </style>
@@ -687,11 +761,6 @@ if "train_msgs" not in st.session_state:
 if "current_q" not in st.session_state:
     st.session_state.current_q = None
 
-# ============================================================
-# 📐 PC 가로폭 기준 2분할 레이아웃
-# ============================================================
-main_col, answer_col = st.columns([2.2, 1], gap="large")
-
 quick_query = None
 
 # ============================================================
@@ -712,48 +781,53 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 """
 
 # ============================================================
-# 📌 메인 영역
+# 📐 메인 레이아웃
 # ============================================================
-with main_col:
+main_col, answer_col = st.columns([2.2, 1], gap="large")
 
-    st.markdown(f"""
-    <div class='welcome-section'>
-        {logo_html}
-        <div>
-            <h2>안녕하세요! {SYSTEM_NAME}입니다</h2>
-            <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요.<br>지침 기반의 정확한 답변과 근거 페이지를 즉시 확인하시고 평가를 완벽하게 대비하십시오.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+with main_col:
 
     if mode == "🔍 인증 지침서 검색":
 
-        st.markdown(
-            "<div class='quick-prompts-title'>💡 이렇게 질문해 보세요 (클릭 시 바로 검색됩니다)</div>",
-            unsafe_allow_html=True
-        )
+        welcome_col, quick_col = st.columns([1, 1], gap="medium")
 
-        c1, c2 = st.columns(2)
+        with welcome_col:
+            st.markdown(f"""
+            <div class='welcome-section'>
+                <h2>안녕하세요! {SYSTEM_NAME}입니다</h2>
+                <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요. 지침 기반의 정확한 답변과 근거 페이지를 즉시 확인하시고 평가를 대비하십시오.</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        with c1:
-            if st.button("💬 낙상 발생 보고 절차 및 타임라인", use_container_width=True):
-                quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
+        with quick_col:
+            st.markdown("""
+            <div class='quick-card'>
+                <div class='quick-prompts-title'>💡 이렇게 질문해 보세요</div>
+            """, unsafe_allow_html=True)
 
-            if st.button("💬 감염관리 위원회 구성 요건과 역할", use_container_width=True):
-                quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
+            q1, q2 = st.columns(2)
 
-            if st.button("💬 직원의 심폐소생술(CPR) 이수 기준", use_container_width=True):
-                quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
+            with q1:
+                if st.button("💬 낙상 보고 절차", use_container_width=True):
+                    quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
 
-        with c2:
-            if st.button("💬 근접오류(Near Miss) 보고 활성화", use_container_width=True):
-                quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
+                if st.button("💬 감염관리 위원회", use_container_width=True):
+                    quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
 
-            if st.button("💬 병동 환경 점검 필수 체크리스트", use_container_width=True):
-                quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
+                if st.button("💬 CPR 이수 기준", use_container_width=True):
+                    quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
 
-            if st.button("💬 화재 발생 시 매뉴얼 (R.A.C.E.)", use_container_width=True):
-                quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
+            with q2:
+                if st.button("💬 근접오류 보고", use_container_width=True):
+                    quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
+
+                if st.button("💬 병동 환경 점검", use_container_width=True):
+                    quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
+
+                if st.button("💬 화재 R.A.C.E.", use_container_width=True):
+                    quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
         st.write("<br>", unsafe_allow_html=True)
 
@@ -762,6 +836,13 @@ with main_col:
                 st.markdown(m["content"])
 
     elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
+
+        st.markdown(f"""
+        <div class='welcome-section'>
+            <h2>실전 모의감독관 훈련</h2>
+            <p>AI 감독관이 인증 지침서 기반 질문을 생성하고, 입력하신 답변을 기준으로 보완점을 제시합니다.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.info("💡 하단의 채팅창에 답변을 입력하면 AI가 지침서 기반으로 채점합니다.")
 
@@ -800,7 +881,7 @@ with main_col:
 # 📌 우측 AI 표준 답변 가이드
 # ============================================================
 with answer_col:
-    st.markdown(f"""
+    st.markdown("""
     <div class='answer-structure'>
         <h3>🌟 AI 표준 답변 가이드</h3>
         <ul>
@@ -810,11 +891,11 @@ with answer_col:
             </li>
             <li>
                 <div class='answer-structure-title'>⚖️ 근거</div>
-                <div class='answer-structure-content'>• 관련 지침서 항목 (예: 환자안전 지침서 3.4)<br>• 5주기 인증기준 번호<br>• 🚨 <strong>정확한 지침서 페이지 번호 (p.12)</strong></div>
+                <div class='answer-structure-content'>• 관련 지침서 항목<br>• 5주기 인증기준 번호<br>• 정확한 지침서 페이지 번호</div>
             </li>
             <li>
                 <div class='answer-structure-title'>📂 예상 확인자료</div>
-                <div class='answer-structure-content'>조사위원이 현장에서 요구할 가능성이 높은 규정, 기록지, 보고서, 체크리스트 목록을 제시합니다.</div>
+                <div class='answer-structure-content'>현장에서 요구될 가능성이 높은 규정, 기록지, 보고서, 체크리스트를 제시합니다.</div>
             </li>
         </ul>
     </div>
