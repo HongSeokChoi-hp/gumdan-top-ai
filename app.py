@@ -241,6 +241,36 @@ st.markdown("""
         line-height: 1.6;
     }
 
+
+    .verified-reference-box {
+        margin-top: 20px;
+        padding: 16px 18px;
+        background: #ffffff;
+        border: 1px solid #dbe3ef;
+        border-left: 5px solid #005691;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .verified-reference-box h4 {
+        margin: 0 0 10px 0;
+        color: #003366 !important;
+        font-size: 1.05rem !important;
+        font-weight: 800;
+    }
+
+    .verified-reference-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .verified-reference-box li {
+        color: #334155 !important;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+
     div[data-testid="stChatInput"] {
         max-width: 1800px !important;
         margin: 0 auto !important;
@@ -527,6 +557,23 @@ st.markdown("""
         }
 
         .answer-structure-content br { display: none !important; }
+
+
+        .verified-reference-box {
+            margin-top: 12px !important;
+            padding: 11px 13px !important;
+            border-radius: 10px !important;
+        }
+
+        .verified-reference-box h4 {
+            font-size: 0.88rem !important;
+            margin-bottom: 7px !important;
+        }
+
+        .verified-reference-box li {
+            font-size: 0.76rem !important;
+            line-height: 1.35 !important;
+        }
 
         .element-container { margin-bottom: 0.22rem !important; }
 
@@ -857,6 +904,51 @@ def build_allowed_refs(docs, max_refs=8):
     return refs
 
 
+def build_verified_reference_html(allowed_refs, max_refs=5):
+    """
+    AI 답변과 분리하여 코드가 직접 근거 페이지를 표시합니다.
+    페이지 번호가 AI 답변에서 지워지는 문제를 방지하기 위한 강제 표출 영역입니다.
+    """
+    if not allowed_refs:
+        return ""
+
+    clean_refs = []
+    seen = set()
+
+    for ref in allowed_refs:
+        if not ref:
+            continue
+
+        # manual/guide 등 내부 파일명 노출 방지
+        ref = remove_file_names_and_forbidden_words(str(ref)).strip()
+        ref = re.sub(r"\(\s*\)", "", ref).strip()
+
+        if not ref:
+            continue
+
+        # 핸드북 p.89가 들어오면 핸드북 p.089 허용목록 표기값은 그대로 유지
+        if ref not in seen:
+            seen.add(ref)
+            clean_refs.append(ref)
+
+        if len(clean_refs) >= max_refs:
+            break
+
+    if not clean_refs:
+        return ""
+
+    lis = "\n".join([f"<li>{r}</li>" for r in clean_refs])
+
+    return f"""
+<div class='verified-reference-box'>
+    <h4>📌 확인된 근거 페이지</h4>
+    <ul>
+        {lis}
+    </ul>
+</div>
+"""
+
+
 def build_context_for_ai(docs):
     ctx_list = []
 
@@ -1023,6 +1115,32 @@ def remove_file_names_and_forbidden_words(text):
     return cleaned.strip()
 
 
+
+def strip_page_refs_from_ai_answer(text):
+    """
+    AI 답변 본문에서는 페이지 표기를 전부 제거합니다.
+    실제 근거 페이지는 build_verified_reference_html()이 별도 박스로 표시합니다.
+    """
+    if not text:
+        return ""
+
+    cleaned = text
+
+    # 핸드북 p.089 / 지침서 p.79 / p.89 / 89페이지 제거
+    cleaned = re.sub(r"\((?:\s*(?:핸드북|지침서)\s*)?p\.\s*[0-9]+\s*\)", "", cleaned)
+    cleaned = re.sub(r"(핸드북|지침서)\s*p\.\s*[0-9]+", "", cleaned)
+    cleaned = re.sub(r"(?<![가-힣])p\.\s*[0-9]+", "", cleaned)
+    cleaned = re.sub(r"[0-9]+\s*페이지", "", cleaned)
+
+    # 빈 괄호 및 찌꺼기 제거
+    cleaned = re.sub(r"\(\s*[,，]?\s*\)", "", cleaned)
+    cleaned = re.sub(r"\(\s*\)", "", cleaned)
+    cleaned = re.sub(r"（\s*）", "", cleaned)
+    cleaned = re.sub(r"\s+\n", "\n", cleaned)
+
+    return cleaned.strip()
+
+
 def force_allowed_refs_only(text, allowed_refs):
     """
     답변 안의 근거표기를 허용 목록 기준으로 정리합니다.
@@ -1149,11 +1267,10 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 
 ### ⚖️ 근거
 - 관련 지침 내용과 기준을 설명하십시오.
-- 페이지 근거는 반드시 [원문 데이터]에 표시된 '허용 근거표기' 중에서만 사용하십시오.
-- 허용 근거표기는 '핸드북 p.숫자' 또는 '지침서 p.숫자' 형식입니다.
-- 허용 근거표기 외의 페이지 번호는 절대 쓰지 마십시오.
+- 페이지 번호는 절대 작성하지 마십시오.
+- '핸드북 p.숫자', '지침서 p.숫자', 'p.숫자', '숫자페이지' 형식을 절대 출력하지 마십시오.
 - 파일명, manual, guide, pdf, hwp 같은 표현은 절대 출력하지 마십시오.
-- 표현 예시: • 의료폐기물은 종류별 보관기간이 다르게 적용됩니다. (핸드북 p.127)
+- 실제 근거 페이지는 시스템 코드가 답변 하단에 자동으로 표시합니다.
 
 ### 📂 예상 확인자료
 - 현장 평가 시 확인하거나 준비해야 할 기록지, 보고서, 체크리스트를 불릿 기호(•)로 제시하십시오.
@@ -1162,22 +1279,22 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 - 파일명 출력 금지
 - 영문 파일명 출력 금지
 - manual2, manual, guide 출력 금지
-- 허용 근거표기 외 페이지 번호 생성 금지
+- 모든 페이지 번호 생성 금지
 - 원문 데이터에 없는 내용 단정 금지
 """
 
 VERIFY_RULE = """
 너는 병원 인증 지침 답변 검증자입니다.
 
-아래 [초안 답변]을 [원문 데이터]와 [허용 근거표기 목록] 기준으로 검증하여 최종 답변으로 다시 작성하십시오.
+아래 [초안 답변]을 [원문 데이터] 기준으로 검증하여 최종 답변으로 다시 작성하십시오.
 
 반드시 수행할 검증:
 1. 초안 답변의 각 주장 내용이 원문 데이터에 실제로 존재하는지 확인하십시오.
-2. 초안 답변에 표시된 페이지 근거가 허용 근거표기 목록 안에 있는지 확인하십시오.
-3. 특히 각 '핸드북 p.숫자' 또는 '지침서 p.숫자'에 해당하는 원문 조각 안에 사용자가 찾는 내용이 실제로 포함되어 있는지 검증하십시오.
-4. 해당 페이지 조각 안에 관련 내용이 없으면 그 근거표기는 삭제하십시오.
-5. 관련 내용이 확인되는 근거표기만 남기십시오.
-6. manual2, manual, guide, pdf, hwp, 파일명은 절대 출력하지 마십시오.
+2. 사용자가 찾는 내용이 원문 데이터에 실제로 포함되어 있는지 검증하십시오.
+3. 관련성이 낮거나 원문으로 확인되지 않는 내용은 삭제하십시오.
+4. manual2, manual, guide, pdf, hwp, 파일명은 절대 출력하지 마십시오.
+5. 페이지 번호는 절대 출력하지 마십시오.
+6. '핸드북 p.숫자', '지침서 p.숫자', 'p.숫자', '숫자페이지' 형식을 절대 출력하지 마십시오.
 7. 답변 형식은 반드시 아래 3단 구조를 유지하십시오.
 
 ### 💡 답변 요약
@@ -1323,9 +1440,6 @@ if final_query:
                         f"""
 {SYS_RULE}
 
-[허용 근거표기 목록]
-{allowed_refs_text}
-
 [원문 데이터]
 {ctx_str}
 
@@ -1339,9 +1453,6 @@ if final_query:
                             f"""
 {VERIFY_RULE}
 
-[허용 근거표기 목록]
-{allowed_refs_text}
-
 [원문 데이터]
 {ctx_str}
 
@@ -1354,13 +1465,18 @@ if final_query:
                         )
 
                     verified_answer = remove_file_names_and_forbidden_words(verified_answer)
-                    verified_answer = force_allowed_refs_only(verified_answer, allowed_refs)
+                    verified_answer = strip_page_refs_from_ai_answer(verified_answer)
+
+                    reference_html = build_verified_reference_html(allowed_refs, max_refs=5)
+                    final_answer = verified_answer + "\n\n" + reference_html
 
                     st.markdown(verified_answer)
+                    if reference_html:
+                        st.markdown(reference_html, unsafe_allow_html=True)
 
                     st.session_state.search_msgs.append({
                         "role": "assistant",
-                        "content": verified_answer
+                        "content": final_answer
                     })
 
                 except Exception as e:
@@ -1395,11 +1511,7 @@ if final_query:
 - 실제 지침서 내용 기반으로만 피드백하십시오.
 - 파일명은 출력하지 마십시오.
 - manual2, manual, guide는 출력하지 마십시오.
-- 페이지 근거는 반드시 허용 근거표기 목록 안에서만 사용하십시오.
-- 허용 근거표기 외 페이지 번호는 절대 만들지 마십시오.
-
-[허용 근거표기 목록]
-{allowed_refs_text}
+- 페이지 번호는 절대 출력하지 마십시오.
 
 [감독관 질문]
 {st.session_state.current_q}
@@ -1417,9 +1529,6 @@ if final_query:
                                 f"""
 {VERIFY_RULE}
 
-[허용 근거표기 목록]
-{allowed_refs_text}
-
 [원문 데이터]
 {ctx_str}
 
@@ -1435,13 +1544,18 @@ if final_query:
                             )
 
                         verified_answer = remove_file_names_and_forbidden_words(verified_answer)
-                        verified_answer = force_allowed_refs_only(verified_answer, allowed_refs)
+                        verified_answer = strip_page_refs_from_ai_answer(verified_answer)
+
+                        reference_html = build_verified_reference_html(allowed_refs, max_refs=5)
+                        final_answer = verified_answer + "\n\n" + reference_html
 
                         st.markdown(verified_answer)
+                        if reference_html:
+                            st.markdown(reference_html, unsafe_allow_html=True)
 
                         st.session_state.train_msgs.append({
                             "role": "assistant",
-                            "content": verified_answer
+                            "content": final_answer
                         })
 
                         st.session_state.current_q = None
