@@ -744,28 +744,53 @@ def get_source_label(d):
     return "자료"
 
 
-def extract_page_number(page_value):
+def normalize_page_number_for_compare(page_value):
+    """
+    비교용 페이지 번호 정규화:
+    - 089, 89, p.089, 089페이지를 모두 '89'로 통일
+    - 숫자가 아닌 라벨은 원문을 유지
+    """
     if page_value is None or page_value == "":
         return None
 
-    try:
-        if isinstance(page_value, int):
-            return page_value
+    text = str(page_value).strip()
+    text = text.replace("p.", "").replace("P.", "")
+    text = text.replace("페이지", "").strip()
 
-        if isinstance(page_value, float):
-            return int(page_value)
+    if text.isdigit():
+        return str(int(text))
 
-        page_text = str(page_value).strip()
-        page_text = page_text.replace("p.", "").replace("P.", "")
-        page_text = page_text.replace("페이지", "").strip()
+    return text
 
-        if page_text.isdigit():
-            return int(page_text)
 
-        return page_text
+def format_page_number_for_display(page_value):
+    """
+    화면 출력용 페이지 번호:
+    - 핸드북처럼 008, 089 형태가 들어온 경우 3자리 유지
+    - 숫자 89처럼 들어온 경우 89로 표시
+    """
+    if page_value is None or page_value == "":
+        return None
 
-    except Exception:
-        return str(page_value)
+    raw = str(page_value).strip()
+    cleaned = raw.replace("p.", "").replace("P.", "")
+    cleaned = cleaned.replace("페이지", "").strip()
+
+    if cleaned.isdigit():
+        # 원본이 3자리 이상 0으로 시작하면 그대로 유지: 008, 089
+        if len(cleaned) >= 3 and cleaned.startswith("0"):
+            return cleaned
+        return str(int(cleaned))
+
+    return cleaned
+
+
+def extract_page_number(page_value):
+    """
+    metadata에서 페이지 번호를 꺼낼 때 사용하는 기본 함수.
+    비교용이 아니라 '원본 표시값'을 최대한 보존합니다.
+    """
+    return format_page_number_for_display(page_value)
 
 
 def get_doc_page(d):
@@ -791,10 +816,11 @@ def get_doc_page(d):
     if page is None:
         return None
 
-    # 지침서 guide 파일은 현재 실제 하단 페이지보다 +4 크게 저장된 상태로 보고 보정
+    # 지침서 guide 파일은 실제 하단 페이지보다 +4 크게 저장된 상태로 보고 -4 보정
+    # 새로 만든 인덱스가 이미 printed_page를 정확히 담고 있다면 GUIDE_PAGE_OFFSET 값을 0으로 바꾸면 됩니다.
     if get_source_label(d) == "지침서":
         try:
-            return max(1, int(page) + GUIDE_PAGE_OFFSET)
+            return str(max(1, int(normalize_page_number_for_compare(page)) + GUIDE_PAGE_OFFSET))
         except Exception:
             return page
 
@@ -998,38 +1024,67 @@ def remove_file_names_and_forbidden_words(text):
 
 
 def force_allowed_refs_only(text, allowed_refs):
+    """
+    답변 안의 근거표기를 허용 목록 기준으로 정리합니다.
+    핵심 보정:
+    - 허용 목록이 '핸드북 p.089'이고 AI가 '핸드북 p.89'라고 써도 같은 페이지로 인정
+    - 허용 목록이 '지침서 p.79'이고 AI가 '지침서 p.079'라고 써도 같은 페이지로 인정
+    - 파일명/manual/guide는 제거
+    """
     if not text:
         return ""
 
     if not allowed_refs:
         return text
 
-    allowed_pairs = set()
-    allowed_page_nums = set()
+    # 비교용: ('핸드북', '89') -> 화면출력용 '핸드북 p.089'
+    allowed_pair_to_display = {}
+    allowed_page_to_display = {}
 
     for ref in allowed_refs:
-        m = re.search(r"(핸드북|지침서)\s*p\.(\d+)", ref)
+        m = re.search(r"(핸드북|지침서)\s*p\.\s*([0-9]+)", ref)
         if m:
-            allowed_pairs.add((m.group(1), m.group(2)))
-            allowed_page_nums.add(m.group(2))
+            source = m.group(1)
+            raw_num = m.group(2)
+            norm_num = normalize_page_number_for_compare(raw_num)
+            display_num = format_page_number_for_display(raw_num)
+
+            allowed_pair_to_display[(source, norm_num)] = f"{source} p.{display_num}"
+
+            # p.번호만 나온 경우도 허용하되, 같은 번호가 여러 출처에 있으면 첫 번째 기준
+            if norm_num not in allowed_page_to_display:
+                allowed_page_to_display[norm_num] = f"p.{display_num}"
 
     def repl_full(match):
         source = match.group(1)
-        num = match.group(2)
-        if (source, num) in allowed_pairs:
-            return f"{source} p.{num}"
+        raw_num = match.group(2)
+        norm_num = normalize_page_number_for_compare(raw_num)
+        key = (source, norm_num)
+
+        if key in allowed_pair_to_display:
+            return allowed_pair_to_display[key]
+
         return ""
 
-    text = re.sub(r"(핸드북|지침서)\s*p\.\s*(\d+)", repl_full, text)
+    # 핸드북 p.089 / 핸드북 p.89 / 지침서 p.079 모두 처리
+    text = re.sub(r"(핸드북|지침서)\s*p\.\s*([0-9]+)", repl_full, text)
 
     def repl_page_only(match):
-        num = match.group(1)
-        if num in allowed_page_nums:
-            return f"p.{num}"
+        raw_num = match.group(1)
+        norm_num = normalize_page_number_for_compare(raw_num)
+
+        if norm_num in allowed_page_to_display:
+            return allowed_page_to_display[norm_num]
+
         return ""
 
-    text = re.sub(r"(?<![가-힣])p\.\s*(\d+)", repl_page_only, text)
-    text = re.sub(r"(\d+)\s*페이지", lambda m: f"p.{m.group(1)}" if m.group(1) in allowed_page_nums else "", text)
+    # 출처 없이 p.089만 나온 경우
+    text = re.sub(r"(?<![가-힣])p\.\s*([0-9]+)", repl_page_only, text)
+    text = re.sub(r"([0-9]+)\s*페이지", lambda m: repl_page_only(m), text)
+
+    # 빈 괄호 정리: () 또는 ( ) 제거
+    text = re.sub(r"\(\s*\)", "", text)
+    text = re.sub(r"（\s*）", "", text)
 
     return text
 
