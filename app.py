@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] PC 고급 레이아웃 + 모바일 별도 압축 UX
+# 🎨 [디자인] PC 원본 복구 + 모바일 전용 보정
 # ============================================================
 st.markdown("""
 <style>
@@ -58,6 +58,7 @@ st.markdown("""
         color: #111827 !important;
     }
 
+    /* 방해 요소 제거 */
     [data-testid="stSidebar"],
     [data-testid="collapsedControl"] {
         display: none !important;
@@ -77,7 +78,7 @@ st.markdown("""
     }
 
     /* ============================================================ */
-    /* 🖥️ PC 레이아웃 */
+    /* 🖥️ PC 화면: 원래 구조 유지 */
     /* ============================================================ */
 
     .block-container {
@@ -89,6 +90,7 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
+    /* 상단 배너 */
     .dashboard-header {
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important;
         padding: 25px 35px;
@@ -119,6 +121,7 @@ st.markdown("""
         letter-spacing: -1px !important;
     }
 
+    /* 모드 선택 탭 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         background-color: #ffffff !important;
         padding: 12px 20px !important;
@@ -140,52 +143,44 @@ st.markdown("""
         color: #003366 !important;
     }
 
+    /* 환영 섹션: PC 원래 구조 */
     .welcome-section {
         background-color: #ffffff !important;
-        padding: 30px 32px;
+        padding: 35px;
         border-radius: 12px;
         border: 1px solid #e2e8f0;
-        min-height: 190px;
         display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 12px;
-        margin-bottom: 0;
+        align-items: center;
+        gap: 25px;
+        margin-bottom: 30px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .welcome-section img {
+        height: 75px !important;
+        flex-shrink: 0;
     }
 
     .welcome-section h2 {
         color: #111827 !important;
-        margin: 0;
-        font-size: 1.55rem !important;
+        margin: 0 0 10px 0;
+        font-size: 1.6rem !important;
         font-weight: 800;
-        letter-spacing: -0.6px;
-        line-height: 1.35;
     }
 
     .welcome-section p {
         color: #475569 !important;
         margin: 0;
-        font-size: 1.03rem !important;
-        line-height: 1.65;
-        word-break: keep-all;
+        font-size: 1.05rem !important;
+        line-height: 1.6;
     }
 
-    .quick-card {
-        background-color: #ffffff !important;
-        padding: 24px 26px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        min-height: 190px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    }
-
+    /* 추천 질문 버튼 */
     .quick-prompts-title {
-        margin: 0 0 14px 0;
-        font-size: 1.12rem !important;
+        margin: 0 0 15px 0;
+        font-size: 1.2rem !important;
         color: #1e293b !important;
         font-weight: 800;
-        letter-spacing: -0.3px;
     }
 
     div[data-testid="stButton"] button {
@@ -194,13 +189,13 @@ st.markdown("""
         border-radius: 25px !important;
         color: #005691 !important;
         font-weight: 600 !important;
-        padding: 11px 18px !important;
+        padding: 12px 20px !important;
         display: flex !important;
         justify-content: center !important;
         text-align: center !important;
         width: 100% !important;
         transition: all 0.2s ease-in-out;
-        font-size: 0.93rem !important;
+        font-size: 0.95rem !important;
         line-height: 1.25 !important;
     }
 
@@ -211,6 +206,7 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
 
+    /* 우측 AI 가이드 */
     .answer-structure {
         background-color: #ffffff !important;
         padding: 25px;
@@ -255,6 +251,7 @@ st.markdown("""
         line-height: 1.6;
     }
 
+    /* PC 채팅창 */
     div[data-testid="stChatInput"] {
         max-width: 1800px !important;
         margin: 0 auto !important;
@@ -288,7 +285,7 @@ st.markdown("""
     }
 
     /* ============================================================ */
-    /* 📱 모바일 전용 UX */
+    /* 📱 모바일 화면 전용 */
     /* ============================================================ */
     @media (max-width: 768px) {
 
@@ -329,12 +326,25 @@ st.markdown("""
             padding-top: 0.55rem !important;
             padding-left: 0.7rem !important;
             padding-right: 0.7rem !important;
-            padding-bottom: 6.2rem !important;
+            padding-bottom: 6rem !important;
             overflow-x: hidden !important;
         }
 
+        /* 모바일에서는 컬럼 세로 정렬 */
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            display: block !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            gap: 0.35rem !important;
+        }
+
+        /* 상단 배너 축소 */
         .dashboard-header {
-            min-height: 54px !important;
+            min-height: 52px !important;
             padding: 10px 12px !important;
             margin-bottom: 8px !important;
             border-radius: 10px !important;
@@ -363,6 +373,7 @@ st.markdown("""
             letter-spacing: -0.5px !important;
         }
 
+        /* 모드 선택 축소 */
         div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
             padding: 6px 7px !important;
             margin-bottom: 8px !important;
@@ -400,19 +411,20 @@ st.markdown("""
             text-overflow: ellipsis !important;
         }
 
-        div[data-testid="stHorizontalBlock"] {
-            gap: 0.5rem !important;
-        }
-
+        /* 모바일 환영박스: 중간 로고 제거 */
         .welcome-section {
             padding: 10px 12px !important;
-            margin-bottom: 0 !important;
+            margin-bottom: 6px !important;
             border-radius: 10px !important;
             min-height: auto !important;
             background-color: #ffffff !important;
             border: 1px solid #dbe3ef !important;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
             display: block !important;
+        }
+
+        .welcome-section img {
+            display: none !important;
         }
 
         .welcome-section h2 {
@@ -435,21 +447,11 @@ st.markdown("""
             display: none !important;
         }
 
-        .quick-card {
-            padding: 10px 10px 9px 10px !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-            border-radius: 10px !important;
-            min-height: auto !important;
-            background-color: #ffffff !important;
-            border: 1px solid #dbe3ef !important;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
-        }
-
+        /* 모바일 추천 질문 영역 */
         .quick-prompts-title {
-            font-size: 0.82rem !important;
+            font-size: 0.86rem !important;
             line-height: 1.15 !important;
-            margin: 0 0 6px 0 !important;
+            margin: 2px 0 5px 0 !important;
             font-weight: 800 !important;
             letter-spacing: -0.4px !important;
         }
@@ -459,12 +461,12 @@ st.markdown("""
         }
 
         div[data-testid="stButton"] button {
-            min-height: 25px !important;
-            height: 25px !important;
-            padding: 3px 7px !important;
-            border-radius: 14px !important;
-            font-size: 0.63rem !important;
-            line-height: 1.05 !important;
+            min-height: 30px !important;
+            height: 30px !important;
+            padding: 4px 8px !important;
+            border-radius: 15px !important;
+            font-size: 0.7rem !important;
+            line-height: 1.1 !important;
             font-weight: 800 !important;
             color: #005691 !important;
             background-color: #ffffff !important;
@@ -478,8 +480,8 @@ st.markdown("""
         }
 
         div[data-testid="stButton"] button p {
-            font-size: 0.63rem !important;
-            line-height: 1.05 !important;
+            font-size: 0.7rem !important;
+            line-height: 1.1 !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
@@ -490,9 +492,18 @@ st.markdown("""
             box-shadow: none !important;
         }
 
+        /* 모바일 추천 질문은 2개만 표시 */
+        div[class*="st-key-q_infection"],
+        div[class*="st-key-q_cpr"],
+        div[class*="st-key-q_nearmiss"],
+        div[class*="st-key-q_ward"] {
+            display: none !important;
+        }
+
+        /* AI 가이드: 추천질문과 간격 최소화 */
         .answer-structure {
             padding: 9px 10px !important;
-            margin-top: 0 !important;
+            margin-top: 2px !important;
             margin-bottom: 4px !important;
             border-radius: 10px !important;
             background-color: #ffffff !important;
@@ -523,7 +534,7 @@ st.markdown("""
             border-radius: 8px !important;
             border-left: 3px solid #005691 !important;
             background-color: #f8fafc !important;
-            min-height: 58px !important;
+            min-height: 56px !important;
         }
 
         .answer-structure-title {
@@ -537,7 +548,7 @@ st.markdown("""
 
         .answer-structure-content {
             font-size: 0.55rem !important;
-            line-height: 1.22 !important;
+            line-height: 1.2 !important;
             color: #475569 !important;
             word-break: keep-all !important;
             letter-spacing: -0.25px !important;
@@ -548,7 +559,7 @@ st.markdown("""
         }
 
         .element-container {
-            margin-bottom: 0.28rem !important;
+            margin-bottom: 0.22rem !important;
         }
 
         div[data-testid="stChatMessage"] {
@@ -565,6 +576,7 @@ st.markdown("""
             color: #111827 !important;
         }
 
+        /* 모바일 채팅창: 아이폰 다크모드 무력화 */
         div[data-testid="stChatInput"] {
             max-width: 100% !important;
             left: 0 !important;
@@ -781,53 +793,50 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 """
 
 # ============================================================
-# 📐 메인 레이아웃
+# 📐 PC 원래 구조: 왼쪽 본문 + 오른쪽 가이드
 # ============================================================
 main_col, answer_col = st.columns([2.2, 1], gap="large")
 
 with main_col:
 
+    st.markdown(f"""
+    <div class='welcome-section'>
+        {logo_html}
+        <div>
+            <h2>안녕하세요! {SYSTEM_NAME}입니다</h2>
+            <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요.<br>지침 기반의 정확한 답변과 근거 페이지를 즉시 확인하시고 평가를 완벽하게 대비하십시오.</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     if mode == "🔍 인증 지침서 검색":
 
-        welcome_col, quick_col = st.columns([1, 1], gap="medium")
+        st.markdown(
+            "<div class='quick-prompts-title'>💡 이렇게 질문해 보세요 (클릭 시 바로 검색됩니다)</div>",
+            unsafe_allow_html=True
+        )
 
-        with welcome_col:
-            st.markdown(f"""
-            <div class='welcome-section'>
-                <h2>안녕하세요! {SYSTEM_NAME}입니다</h2>
-                <p>방대한 인증 지침서를 단 몇 초 만에 검색하고, AI 감독관과 함께 실전 훈련을 진행하세요. 지침 기반의 정확한 답변과 근거 페이지를 즉시 확인하시고 평가를 대비하십시오.</p>
-            </div>
-            """, unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
 
-        with quick_col:
-            st.markdown("""
-            <div class='quick-card'>
-                <div class='quick-prompts-title'>💡 이렇게 질문해 보세요</div>
-            """, unsafe_allow_html=True)
+        with c1:
+            if st.button("💬 낙상 발생 시 보고 절차를 알려줘", use_container_width=True, key="q_fall"):
+                quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
 
-            q1, q2 = st.columns(2)
+            if st.button("💬 감염관리 위원회 구성 요건을 알려줘", use_container_width=True, key="q_infection"):
+                quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
 
-            with q1:
-                if st.button("💬 낙상 보고 절차", use_container_width=True):
-                    quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
+            if st.button("💬 직원의 CPR 이수 기준을 알려줘", use_container_width=True, key="q_cpr"):
+                quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
 
-                if st.button("💬 감염관리 위원회", use_container_width=True):
-                    quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
+        with c2:
+            if st.button("💬 화재 발생 시 R.A.C.E. 대응 절차를 알려줘", use_container_width=True, key="q_fire"):
+                quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
 
-                if st.button("💬 CPR 이수 기준", use_container_width=True):
-                    quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
+            if st.button("💬 근접오류 보고 활성화 방법을 알려줘", use_container_width=True, key="q_nearmiss"):
+                quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
 
-            with q2:
-                if st.button("💬 근접오류 보고", use_container_width=True):
-                    quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
-
-                if st.button("💬 병동 환경 점검", use_container_width=True):
-                    quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
-
-                if st.button("💬 화재 R.A.C.E.", use_container_width=True):
-                    quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
-
-            st.markdown("</div>", unsafe_allow_html=True)
+            if st.button("💬 병동 환경 점검 필수 항목을 알려줘", use_container_width=True, key="q_ward"):
+                quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
 
         st.write("<br>", unsafe_allow_html=True)
 
@@ -837,16 +846,9 @@ with main_col:
 
     elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
 
-        st.markdown(f"""
-        <div class='welcome-section'>
-            <h2>실전 모의감독관 훈련</h2>
-            <p>AI 감독관이 인증 지침서 기반 질문을 생성하고, 입력하신 답변을 기준으로 보완점을 제시합니다.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
         st.info("💡 하단의 채팅창에 답변을 입력하면 AI가 지침서 기반으로 채점합니다.")
 
-        if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True):
+        if st.button("▶️ 새로운 감독관 질문 생성", use_container_width=True, key="new_training_question"):
             with st.chat_message("assistant"):
                 with st.spinner("💭 감독관이 지침서를 분석하여 질문을 생성 중..."):
                     random_docs = vdb.similarity_search(
