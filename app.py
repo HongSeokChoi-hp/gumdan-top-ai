@@ -726,14 +726,48 @@ def get_intelligent_text(prompt_text):
 
 
 # ============================================================
-# 📌 페이지 metadata 처리
+# 📌 metadata 기반 출처/페이지 처리
 # ============================================================
+def get_raw_source_from_doc(d):
+    meta = getattr(d, "metadata", {}) or {}
+
+    raw_source = (
+        meta.get("source")
+        or meta.get("file_path")
+        or meta.get("filename")
+        or meta.get("file_name")
+        or meta.get("doc_name")
+        or meta.get("title")
+        or ""
+    )
+
+    raw_source = os.path.basename(str(raw_source)).strip()
+    return raw_source
+
+
+def get_source_label(d):
+    """
+    화면 출력용 출처명 변환:
+    manual2 → 핸드북
+    guide   → 지침서
+    """
+    raw_source = get_raw_source_from_doc(d)
+    source_lower = raw_source.lower()
+
+    if "manual2" in source_lower or "manual" in source_lower:
+        return "핸드북"
+
+    if "guide" in source_lower:
+        return "지침서"
+
+    return "자료"
+
+
 def extract_page_number(page_value):
     """
-    중요:
-    - 사용자가 말한 '하단 페이지 번호가 metadata에 들어있다'는 가정하에,
-      page 값에 +1을 하지 않고 그대로 사용합니다.
-    - page_index처럼 명백한 index성 필드가 들어온 경우에만 +1 처리합니다.
+    현재 전제:
+    - metadata의 page 값이 이미 하단 페이지 번호라고 보고 그대로 사용합니다.
+    - +1 하지 않습니다.
     """
     if page_value is None or page_value == "":
         return None
@@ -746,7 +780,6 @@ def extract_page_number(page_value):
             return int(page_value)
 
         page_text = str(page_value).strip()
-
         page_text = page_text.replace("p.", "").replace("P.", "")
         page_text = page_text.replace("페이지", "").strip()
 
@@ -780,43 +813,49 @@ def get_doc_page(d):
     return extract_page_number(raw_page)
 
 
-def build_allowed_pages(docs, max_pages=8):
-    pages = []
+def get_doc_ref_label(d):
+    source_label = get_source_label(d)
+    page = get_doc_page(d)
+
+    if page is None:
+        return f"{source_label} 페이지 정보 없음"
+
+    return f"{source_label} p.{page}"
+
+
+def build_allowed_refs(docs, max_refs=8):
+    refs = []
     seen = set()
 
     for d in docs:
-        page = get_doc_page(d)
+        ref = get_doc_ref_label(d)
 
-        if page is None:
+        if "페이지 정보 없음" in ref:
             continue
 
-        page_label = f"p.{page}"
+        if ref not in seen:
+            seen.add(ref)
+            refs.append(ref)
 
-        if page_label not in seen:
-            seen.add(page_label)
-            pages.append(page_label)
-
-        if len(pages) >= max_pages:
+        if len(refs) >= max_refs:
             break
 
-    return pages
+    return refs
 
 
 def build_context_for_ai(docs):
     """
-    파일명은 AI에게 넘기지 않습니다.
-    페이지 번호와 원문 조각만 넘깁니다.
+    AI에게 파일명은 넘기지 않고,
+    화면에 표기 가능한 출처명과 페이지 번호만 넘깁니다.
     """
     ctx_list = []
 
     for idx, d in enumerate(docs, start=1):
-        page = get_doc_page(d)
-        page_label = f"p.{page}" if page is not None else "페이지 정보 없음"
-
+        ref_label = get_doc_ref_label(d)
         content = d.page_content
 
         ctx_list.append(
-            f"[근거자료 {idx} / 허용 페이지: {page_label}]\n{content}"
+            f"[근거자료 {idx} / 허용 근거표기: {ref_label}]\n{content}"
         )
 
     return "\n\n".join(ctx_list)
@@ -835,37 +874,56 @@ def remove_file_names_and_forbidden_words(text):
         r"\bmanual\d*\b\s*/?\s*",
         r"\bguide\d*\b\s*/?\s*",
         r"\b[a-zA-Z0-9_\-]+\.(pdf|PDF|hwp|HWP|docx|DOCX|txt|TXT)\b",
-        r"파일명\s*[:：]?\s*[^\\n]+",
+        r"파일명\s*[:：]?\s*[^\n]+",
+        r"출처\s*[:：]?\s*(manual\d*|guide\d*)",
     ]
 
     for pattern in forbidden_patterns:
         cleaned = re.sub(pattern, "", cleaned)
 
+    cleaned = cleaned.replace("manual2", "")
+    cleaned = cleaned.replace("manual", "")
+    cleaned = cleaned.replace("guide", "")
+
     return cleaned.strip()
 
 
-def force_allowed_page_only(text, allowed_pages):
+def force_allowed_refs_only(text, allowed_refs):
     """
-    답변 안의 p.숫자가 허용 페이지 목록 밖이면 제거합니다.
+    답변 안의 근거표기가 허용된 '핸드북 p.숫자 / 지침서 p.숫자' 외에는 남지 않도록 보정합니다.
     """
     if not text:
         return ""
 
-    if not allowed_pages:
+    if not allowed_refs:
         return text
 
-    allowed_nums = set()
-    for p in allowed_pages:
-        allowed_nums.add(str(p).replace("p.", "").strip())
+    allowed_pairs = set()
+    allowed_page_nums = set()
 
-    def repl(match):
+    for ref in allowed_refs:
+        m = re.search(r"(핸드북|지침서)\s*p\.(\d+)", ref)
+        if m:
+            allowed_pairs.add((m.group(1), m.group(2)))
+            allowed_page_nums.add(m.group(2))
+
+    def repl_full(match):
+        source = match.group(1)
+        num = match.group(2)
+        if (source, num) in allowed_pairs:
+            return f"{source} p.{num}"
+        return ""
+
+    text = re.sub(r"(핸드북|지침서)\s*p\.\s*(\d+)", repl_full, text)
+
+    def repl_page_only(match):
         num = match.group(1)
-        if num in allowed_nums:
+        if num in allowed_page_nums:
             return f"p.{num}"
         return ""
 
-    text = re.sub(r"p\.\s*(\d+)", repl, text)
-    text = re.sub(r"(\d+)\s*페이지", lambda m: f"p.{m.group(1)}" if m.group(1) in allowed_nums else "", text)
+    text = re.sub(r"(?<![가-힣])p\.\s*(\d+)", repl_page_only, text)
+    text = re.sub(r"(\d+)\s*페이지", lambda m: f"p.{m.group(1)}" if m.group(1) in allowed_page_nums else "", text)
 
     return text
 
@@ -930,10 +988,11 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 
 ### ⚖️ 근거
 - 관련 지침 내용과 기준을 설명하십시오.
-- 페이지 번호는 반드시 [원문 데이터]에 표시된 '허용 페이지' 중에서만 사용하십시오.
-- 허용 페이지에 없는 p.번호는 절대 쓰지 마십시오.
+- 페이지 근거는 반드시 [원문 데이터]에 표시된 '허용 근거표기' 중에서만 사용하십시오.
+- 허용 근거표기는 '핸드북 p.숫자' 또는 '지침서 p.숫자' 형식입니다.
+- 허용 근거표기 외의 페이지 번호는 절대 쓰지 마십시오.
 - 파일명, manual, guide, pdf, hwp 같은 표현은 절대 출력하지 마십시오.
-- 표현 예시: • 의료폐기물은 종류별 보관기간이 다르게 적용됩니다. (p.127)
+- 표현 예시: • 의료폐기물은 종류별 보관기간이 다르게 적용됩니다. (핸드북 p.127)
 
 ### 📂 예상 확인자료
 - 현장 평가 시 확인하거나 준비해야 할 기록지, 보고서, 체크리스트를 불릿 기호(•)로 제시하십시오.
@@ -941,21 +1000,24 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 금지사항:
 - 파일명 출력 금지
 - 영문 파일명 출력 금지
-- 허용 페이지 외 페이지 번호 생성 금지
+- manual2, manual, guide 출력 금지
+- 허용 근거표기 외 페이지 번호 생성 금지
 - 원문 데이터에 없는 내용 단정 금지
 """
 
 VERIFY_RULE = """
 너는 병원 인증 지침 답변 검증자입니다.
 
-아래 [초안 답변]을 [원문 데이터]와 [허용 페이지 목록] 기준으로 검증하여 최종 답변으로 다시 작성하십시오.
+아래 [초안 답변]을 [원문 데이터]와 [허용 근거표기 목록] 기준으로 검증하여 최종 답변으로 다시 작성하십시오.
 
-검증 기준:
-1. 답변 내용이 원문 데이터에 근거하는지 확인하십시오.
-2. 근거의 페이지 번호가 허용 페이지 목록 안에 있는지 확인하십시오.
-3. 허용 페이지 목록에 없는 페이지 번호는 삭제하십시오.
-4. manual, guide, pdf, hwp, 파일명 등은 절대 출력하지 마십시오.
-5. 답변 형식은 반드시 아래 3단 구조를 유지하십시오.
+반드시 수행할 검증:
+1. 초안 답변의 각 주장 내용이 원문 데이터에 실제로 존재하는지 확인하십시오.
+2. 초안 답변에 표시된 페이지 근거가 허용 근거표기 목록 안에 있는지 확인하십시오.
+3. 특히 각 '핸드북 p.숫자' 또는 '지침서 p.숫자'에 해당하는 원문 조각 안에 사용자가 찾는 내용이 실제로 포함되어 있는지 검증하십시오.
+4. 해당 페이지 조각 안에 관련 내용이 없으면 그 근거표기는 삭제하십시오.
+5. 관련 내용이 확인되는 근거표기만 남기십시오.
+6. manual2, manual, guide, pdf, hwp, 파일명은 절대 출력하지 마십시오.
+7. 답변 형식은 반드시 아래 3단 구조를 유지하십시오.
 
 ### 💡 답변 요약
 ### ⚖️ 근거
@@ -1058,7 +1120,7 @@ with answer_col:
             </li>
             <li>
                 <div class='answer-structure-title'>⚖️ 근거</div>
-                <div class='answer-structure-content'>관련 지침 내용과 기준을 설명하고, 허용된 페이지 번호만 함께 표시합니다.</div>
+                <div class='answer-structure-content'>관련 지침 내용과 기준을 설명하고, 검증된 핸드북/지침서 페이지를 표시합니다.</div>
             </li>
             <li>
                 <div class='answer-structure-title'>📂 예상 확인자료</div>
@@ -1093,15 +1155,15 @@ if final_query:
                     docs = vdb.similarity_search(final_query, k=12)
 
                     ctx_str = build_context_for_ai(docs)
-                    allowed_pages = build_allowed_pages(docs, max_pages=8)
-                    allowed_pages_text = ", ".join(allowed_pages) if allowed_pages else "페이지 정보 없음"
+                    allowed_refs = build_allowed_refs(docs, max_refs=8)
+                    allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                     draft_answer = get_intelligent_text(
                         f"""
 {SYS_RULE}
 
-[허용 페이지 목록]
-{allowed_pages_text}
+[허용 근거표기 목록]
+{allowed_refs_text}
 
 [원문 데이터]
 {ctx_str}
@@ -1111,13 +1173,13 @@ if final_query:
 """
                     )
 
-                    with st.spinner("🔎 답변 내용과 페이지 근거를 재검증 중..."):
+                    with st.spinner("🔎 해당 페이지에 실제 관련 내용이 있는지 재검증 중..."):
                         verified_answer = get_intelligent_text(
                             f"""
 {VERIFY_RULE}
 
-[허용 페이지 목록]
-{allowed_pages_text}
+[허용 근거표기 목록]
+{allowed_refs_text}
 
 [원문 데이터]
 {ctx_str}
@@ -1131,7 +1193,7 @@ if final_query:
                         )
 
                     verified_answer = remove_file_names_and_forbidden_words(verified_answer)
-                    verified_answer = force_allowed_page_only(verified_answer, allowed_pages)
+                    verified_answer = force_allowed_refs_only(verified_answer, allowed_refs)
 
                     st.markdown(verified_answer)
 
@@ -1164,8 +1226,8 @@ if final_query:
                         )
 
                         ctx_str = build_context_for_ai(docs)
-                        allowed_pages = build_allowed_pages(docs, max_pages=8)
-                        allowed_pages_text = ", ".join(allowed_pages) if allowed_pages else "페이지 정보 없음"
+                        allowed_refs = build_allowed_refs(docs, max_refs=8)
+                        allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                         draft_answer = get_intelligent_text(
                             f"""
@@ -1174,11 +1236,12 @@ if final_query:
 규칙:
 - 실제 지침서 내용 기반으로만 피드백하십시오.
 - 파일명은 출력하지 마십시오.
-- 페이지 번호는 반드시 허용 페이지 목록 안에서만 사용하십시오.
-- 허용 페이지 외 페이지 번호는 절대 만들지 마십시오.
+- manual2, manual, guide는 출력하지 마십시오.
+- 페이지 근거는 반드시 허용 근거표기 목록 안에서만 사용하십시오.
+- 허용 근거표기 외 페이지 번호는 절대 만들지 마십시오.
 
-[허용 페이지 목록]
-{allowed_pages_text}
+[허용 근거표기 목록]
+{allowed_refs_text}
 
 [감독관 질문]
 {st.session_state.current_q}
@@ -1191,13 +1254,13 @@ if final_query:
 """
                         )
 
-                        with st.spinner("🔎 채점 내용과 근거를 재검증 중..."):
+                        with st.spinner("🔎 채점 내용과 해당 페이지 근거를 재검증 중..."):
                             verified_answer = get_intelligent_text(
                                 f"""
 {VERIFY_RULE}
 
-[허용 페이지 목록]
-{allowed_pages_text}
+[허용 근거표기 목록]
+{allowed_refs_text}
 
 [원문 데이터]
 {ctx_str}
@@ -1214,7 +1277,7 @@ if final_query:
                             )
 
                         verified_answer = remove_file_names_and_forbidden_words(verified_answer)
-                        verified_answer = force_allowed_page_only(verified_answer, allowed_pages)
+                        verified_answer = force_allowed_refs_only(verified_answer, allowed_refs)
 
                         st.markdown(verified_answer)
 
