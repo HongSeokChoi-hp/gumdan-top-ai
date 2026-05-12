@@ -884,13 +884,10 @@ def get_doc_ref_label(d):
     return f"{source_label} p.{page}"
 
 
-def build_allowed_refs(docs, max_refs=4, max_per_source=2):
+def build_allowed_refs(docs, max_refs=12, max_per_source=6):
     """
-    검색된 후보 docs 순서를 신뢰하여 근거 페이지를 선별합니다.
-    - 핸드북 최대 2개
-    - 지침서 최대 2개
-    - 전체 최대 4개
-    너무 많은 페이지를 뿌리지 않도록 제한합니다.
+    AI가 최종 근거 페이지를 고를 수 있도록 후보 페이지를 넉넉하게 제공합니다.
+    실제 화면 표시는 select_verified_refs_by_ai()에서 선택된 최소 1개~최대 4개만 합니다.
     """
     refs = []
     seen = set()
@@ -980,6 +977,169 @@ def build_context_for_ai(docs):
         )
 
     return "\n\n".join(ctx_list)
+
+
+def group_docs_by_ref(docs):
+    """
+    근거표기별로 실제 원문 조각을 묶습니다.
+    예: '핸드북 p.089' -> 해당 페이지 chunk들
+    """
+    grouped = {}
+
+    for d in docs:
+        ref = get_doc_ref_label(d)
+        if "페이지 정보 없음" in ref:
+            continue
+
+        content = getattr(d, "page_content", "") or ""
+        if not content.strip():
+            continue
+
+        grouped.setdefault(ref, [])
+        grouped[ref].append(content[:1200])
+
+    return grouped
+
+
+def build_reference_selection_context(docs, allowed_refs):
+    """
+    AI가 근거 페이지를 고를 수 있도록 후보 페이지별 원문 조각을 구성합니다.
+    """
+    grouped = group_docs_by_ref(docs)
+    blocks = []
+
+    for ref in allowed_refs:
+        chunks = grouped.get(ref, [])
+        if not chunks:
+            continue
+
+        joined = "\n---\n".join(chunks[:2])
+        blocks.append(f"[{ref}]\n{joined}")
+
+    return "\n\n".join(blocks)
+
+
+def parse_selected_refs(raw_text, allowed_refs, max_total=4, max_per_source=2):
+    """
+    AI가 반환한 텍스트에서 허용된 근거표기만 추출합니다.
+    089/89 차이를 정규화해서 매칭합니다.
+    """
+    if not raw_text:
+        return []
+
+    allowed_map = {}
+    for ref in allowed_refs:
+        m = re.search(r"(핸드북|지침서)\s*p\.\s*([0-9]+)", ref)
+        if not m:
+            continue
+        source = m.group(1)
+        num = normalize_page_number_for_compare(m.group(2))
+        allowed_map[(source, num)] = ref
+
+    found = []
+    seen = set()
+    source_counts = {"핸드북": 0, "지침서": 0}
+
+    for m in re.finditer(r"(핸드북|지침서)\s*p\.\s*([0-9]+)", raw_text):
+        source = m.group(1)
+        num = normalize_page_number_for_compare(m.group(2))
+        key = (source, num)
+
+        if key not in allowed_map:
+            continue
+
+        ref = allowed_map[key]
+
+        if ref in seen:
+            continue
+
+        if source_counts.get(source, 0) >= max_per_source:
+            continue
+
+        seen.add(ref)
+        found.append(ref)
+        source_counts[source] = source_counts.get(source, 0) + 1
+
+        if len(found) >= max_total:
+            break
+
+    return found
+
+
+def fallback_select_refs_by_keyword(query, docs, allowed_refs, max_total=2):
+    """
+    AI 선택 실패 시 키워드 점수 기반으로 최소 근거를 선택합니다.
+    """
+    grouped = group_docs_by_ref(docs)
+    scored = []
+
+    for ref in allowed_refs:
+        joined = "\n".join(grouped.get(ref, []))
+        score = keyword_score(query, type("TempDoc", (), {"page_content": joined})())
+        scored.append((score, ref))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    selected = []
+    for score, ref in scored:
+        if score <= 0 and selected:
+            continue
+        if ref not in selected:
+            selected.append(ref)
+        if len(selected) >= max_total:
+            break
+
+    return selected
+
+
+def select_verified_refs_by_ai(query, docs, allowed_refs):
+    """
+    최종 답변 전에 AI가 실제 원문 조각을 보고 관련 페이지를 고릅니다.
+    화면에는 이 함수가 고른 페이지만 표시합니다.
+    """
+    if not allowed_refs:
+        return []
+
+    selection_context = build_reference_selection_context(docs, allowed_refs)
+
+    if not selection_context.strip():
+        return []
+
+    prompt = f"""
+너는 병원 인증자료 근거 페이지 선별자입니다.
+
+사용자 질문과 후보 페이지 원문을 비교해서, 답변 근거로 실제 관련 내용이 들어있는 페이지 번호만 고르십시오.
+
+규칙:
+- 반드시 [허용 근거표기 목록]에 있는 표기만 선택하십시오.
+- 핸드북은 최대 2개, 지침서는 최대 2개까지만 선택하십시오.
+- 전체는 최대 4개까지만 선택하십시오.
+- 직접 관련성이 가장 높은 페이지를 우선 선택하십시오.
+- 관련성이 낮은 목차 페이지, 주변 페이지, 단순 유사어 페이지는 제외하십시오.
+- 답은 설명 없이 근거표기만 줄바꿈으로 출력하십시오.
+- 예: 핸드북 p.089
+
+[사용자 질문]
+{query}
+
+[허용 근거표기 목록]
+{", ".join(allowed_refs)}
+
+[후보 페이지 원문]
+{selection_context}
+"""
+
+    try:
+        raw = get_intelligent_text(prompt)
+        selected = parse_selected_refs(raw, allowed_refs, max_total=4, max_per_source=2)
+    except Exception:
+        selected = []
+
+    if not selected:
+        selected = fallback_select_refs_by_keyword(query, docs, allowed_refs, max_total=2)
+
+    return selected
+
 
 
 # ============================================================
@@ -1452,7 +1612,7 @@ if final_query:
                     docs = collect_candidate_docs(final_query)
 
                     ctx_str = build_context_for_ai(docs)
-                    allowed_refs = build_allowed_refs(docs, max_refs=4, max_per_source=2)
+                    allowed_refs = build_allowed_refs(docs, max_refs=12, max_per_source=6)
                     allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                     draft_answer = get_intelligent_text(
@@ -1486,7 +1646,8 @@ if final_query:
                     verified_answer = remove_file_names_and_forbidden_words(verified_answer)
                     verified_answer = strip_page_refs_from_ai_answer(verified_answer)
 
-                    reference_html = build_verified_reference_html(allowed_refs, max_refs=4)
+                    selected_refs = select_verified_refs_by_ai(final_query, docs, allowed_refs)
+                    reference_html = build_verified_reference_html(selected_refs, max_refs=4)
                     final_answer = verified_answer + "\n\n" + reference_html
 
                     st.markdown(verified_answer)
@@ -1519,7 +1680,7 @@ if final_query:
                         docs = collect_candidate_docs(st.session_state.current_q)
 
                         ctx_str = build_context_for_ai(docs)
-                        allowed_refs = build_allowed_refs(docs, max_refs=4, max_per_source=2)
+                        allowed_refs = build_allowed_refs(docs, max_refs=12, max_per_source=6)
                         allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                         draft_answer = get_intelligent_text(
@@ -1565,7 +1726,8 @@ if final_query:
                         verified_answer = remove_file_names_and_forbidden_words(verified_answer)
                         verified_answer = strip_page_refs_from_ai_answer(verified_answer)
 
-                        reference_html = build_verified_reference_html(allowed_refs, max_refs=4)
+                        selected_refs = select_verified_refs_by_ai(st.session_state.current_q, docs, allowed_refs)
+                        reference_html = build_verified_reference_html(selected_refs, max_refs=4)
                         final_answer = verified_answer + "\n\n" + reference_html
 
                         st.markdown(verified_answer)
