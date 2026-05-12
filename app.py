@@ -58,7 +58,6 @@ st.markdown("""
         color: #111827 !important;
     }
 
-    /* 방해 요소 제거 */
     [data-testid="stSidebar"],
     [data-testid="collapsedControl"] {
         display: none !important;
@@ -78,7 +77,7 @@ st.markdown("""
     }
 
     /* ============================================================ */
-    /* 🖥️ PC 화면: 원래 구조 유지 */
+    /* 🖥️ PC 화면 */
     /* ============================================================ */
 
     .block-container {
@@ -90,7 +89,6 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
-    /* 상단 배너 */
     .dashboard-header {
         background: linear-gradient(90deg, #003366 0%, #005691 100%) !important;
         padding: 25px 35px;
@@ -121,7 +119,6 @@ st.markdown("""
         letter-spacing: -1px !important;
     }
 
-    /* 모드 선택 탭 */
     div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
         background-color: #ffffff !important;
         padding: 12px 20px !important;
@@ -143,7 +140,6 @@ st.markdown("""
         color: #003366 !important;
     }
 
-    /* 환영 섹션: PC 원래 구조 */
     .welcome-section {
         background-color: #ffffff !important;
         padding: 35px;
@@ -175,7 +171,6 @@ st.markdown("""
         line-height: 1.6;
     }
 
-    /* 추천 질문 버튼 */
     .quick-prompts-title {
         margin: 0 0 15px 0;
         font-size: 1.2rem !important;
@@ -206,7 +201,6 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
     }
 
-    /* 우측 AI 가이드 */
     .answer-structure {
         background-color: #ffffff !important;
         padding: 25px;
@@ -251,7 +245,35 @@ st.markdown("""
         line-height: 1.6;
     }
 
-    /* PC 채팅창 */
+    .reference-box {
+        margin-top: 22px;
+        padding: 18px 20px;
+        background: #ffffff;
+        border: 1px solid #dbe3ef;
+        border-left: 5px solid #005691;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .reference-box h4 {
+        margin: 0 0 10px 0;
+        color: #003366 !important;
+        font-size: 1.05rem !important;
+        font-weight: 800;
+    }
+
+    .reference-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .reference-box li {
+        color: #334155 !important;
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+
     div[data-testid="stChatInput"] {
         max-width: 1800px !important;
         margin: 0 auto !important;
@@ -285,7 +307,7 @@ st.markdown("""
     }
 
     /* ============================================================ */
-    /* 📱 모바일 화면 전용 */
+    /* 📱 모바일 화면 */
     /* ============================================================ */
     @media (max-width: 768px) {
 
@@ -330,7 +352,6 @@ st.markdown("""
             overflow-x: hidden !important;
         }
 
-        /* 모바일에서는 컬럼 세로 정렬 */
         div[data-testid="column"] {
             width: 100% !important;
             flex: 1 1 100% !important;
@@ -342,7 +363,6 @@ st.markdown("""
             gap: 0.35rem !important;
         }
 
-        /* 상단 배너 축소 */
         .dashboard-header {
             min-height: 52px !important;
             padding: 10px 12px !important;
@@ -373,7 +393,6 @@ st.markdown("""
             letter-spacing: -0.5px !important;
         }
 
-        /* 모드 선택 축소 */
         div[data-testid="stVerticalBlock"] > div:has(div[role="radiogroup"]) {
             padding: 6px 7px !important;
             margin-bottom: 8px !important;
@@ -411,7 +430,6 @@ st.markdown("""
             text-overflow: ellipsis !important;
         }
 
-        /* 모바일 환영박스: 중간 로고 제거 */
         .welcome-section {
             padding: 10px 12px !important;
             margin-bottom: 6px !important;
@@ -447,7 +465,6 @@ st.markdown("""
             display: none !important;
         }
 
-        /* 모바일 추천 질문 영역 */
         .quick-prompts-title {
             font-size: 0.86rem !important;
             line-height: 1.15 !important;
@@ -492,7 +509,6 @@ st.markdown("""
             box-shadow: none !important;
         }
 
-        /* 모바일 추천 질문은 2개만 표시 */
         div[class*="st-key-q_infection"],
         div[class*="st-key-q_cpr"],
         div[class*="st-key-q_nearmiss"],
@@ -500,7 +516,6 @@ st.markdown("""
             display: none !important;
         }
 
-        /* AI 가이드: 추천질문과 간격 최소화 */
         .answer-structure {
             padding: 9px 10px !important;
             margin-top: 2px !important;
@@ -558,6 +573,22 @@ st.markdown("""
             display: none !important;
         }
 
+        .reference-box {
+            margin-top: 12px !important;
+            padding: 12px 14px !important;
+            border-radius: 10px !important;
+        }
+
+        .reference-box h4 {
+            font-size: 0.9rem !important;
+            margin-bottom: 8px !important;
+        }
+
+        .reference-box li {
+            font-size: 0.78rem !important;
+            line-height: 1.35 !important;
+        }
+
         .element-container {
             margin-bottom: 0.22rem !important;
         }
@@ -576,7 +607,6 @@ st.markdown("""
             color: #111827 !important;
         }
 
-        /* 모바일 채팅창: 아이폰 다크모드 무력화 */
         div[data-testid="stChatInput"] {
             max-width: 100% !important;
             left: 0 !important;
@@ -730,6 +760,132 @@ def get_intelligent_response(prompt_text):
 
 
 # ============================================================
+# 📌 참조 문서/페이지 자동 추출
+# ============================================================
+def clean_doc_name(raw_name):
+    if not raw_name:
+        return "출처 미상"
+
+    name = str(raw_name)
+    name = os.path.basename(name)
+
+    for ext in [".pdf", ".PDF", ".hwp", ".HWP", ".docx", ".DOCX", ".txt", ".TXT"]:
+        if name.endswith(ext):
+            name = name[:-len(ext)]
+
+    return name.strip() or "출처 미상"
+
+
+def extract_page_number(page_value):
+    if page_value is None or page_value == "":
+        return None
+
+    try:
+        if isinstance(page_value, int):
+            return page_value + 1
+
+        if isinstance(page_value, float):
+            return int(page_value) + 1
+
+        page_text = str(page_value).strip()
+
+        if page_text.isdigit():
+            return int(page_text) + 1
+
+        return page_text
+
+    except Exception:
+        return str(page_value)
+
+
+def build_reference_section(docs, max_items=8):
+    refs = []
+    seen = set()
+
+    for d in docs:
+        meta = getattr(d, "metadata", {}) or {}
+
+        raw_source = (
+            meta.get("source")
+            or meta.get("file_path")
+            or meta.get("filename")
+            or meta.get("file_name")
+            or meta.get("doc_name")
+            or meta.get("title")
+            or "출처 미상"
+        )
+
+        doc_name = clean_doc_name(raw_source)
+
+        raw_page = (
+            meta.get("page")
+            or meta.get("page_number")
+            or meta.get("page_index")
+            or meta.get("p")
+        )
+
+        page_num = extract_page_number(raw_page)
+
+        if page_num is None:
+            label = f"{doc_name} / 페이지 정보 없음"
+        else:
+            label = f"{doc_name} / p.{page_num}"
+
+        if label not in seen:
+            seen.add(label)
+            refs.append(label)
+
+        if len(refs) >= max_items:
+            break
+
+    if not refs:
+        return """
+<div class='reference-box'>
+    <h4>📌 참조 문서 및 페이지</h4>
+    <ul>
+        <li>검색 결과에서 페이지 metadata를 확인하지 못했습니다. FAISS 인덱스 생성 시 page/source metadata 저장 여부를 확인해야 합니다.</li>
+    </ul>
+</div>
+"""
+
+    lis = "\n".join([f"<li>{r}</li>" for r in refs])
+
+    return f"""
+<div class='reference-box'>
+    <h4>📌 참조 문서 및 페이지</h4>
+    <ul>
+        {lis}
+    </ul>
+</div>
+"""
+
+
+def build_context_without_page_instruction(docs):
+    ctx_list = []
+
+    for idx, d in enumerate(docs, start=1):
+        meta = getattr(d, "metadata", {}) or {}
+
+        raw_source = (
+            meta.get("source")
+            or meta.get("file_path")
+            or meta.get("filename")
+            or meta.get("file_name")
+            or meta.get("doc_name")
+            or meta.get("title")
+            or "출처 미상"
+        )
+
+        doc_name = clean_doc_name(raw_source)
+
+        ctx_list.append(
+            f"[자료 {idx} / 문서명: {doc_name}]\n{d.page_content}"
+        )
+
+    return "\n\n".join(ctx_list)
+
+
+# ============================================================
 # 🏥 로고 Base64 처리
 # ============================================================
 logo_html = ""
@@ -782,14 +938,21 @@ SYS_RULE = f"""당신은 '{SYSTEM_NAME}'입니다.
 사용자의 질문에 대해 반드시 제공된 [원문 데이터]를 분석하여 아래의 3단 구조 양식에 맞춰 답변하십시오.
 
 ### 💡 답변 요약
-(질문에 대한 핵심 내용을 2~3줄로 명확하게 요약)
+질문에 대한 핵심 내용을 2~3줄로 명확하게 요약하십시오.
 
 ### ⚖️ 근거
-(답변의 근거가 되는 지침서 항목과 **정확한 페이지 번호**를 불릿 기호(•)를 사용하여 나열. 예: • 환자안전 지침서 3.4 (p.12))
-🚨 주의사항: 근거 작성 시 절대로 영문 파일명(예: guide.pdf 등)을 출력하지 마십시오. 오직 한글 지침서 이름과 (p.00) 형태의 페이지만 표기하십시오.
+답변의 근거가 되는 지침 내용, 기준, 규정의 핵심을 설명하십시오.
+단, 페이지 번호는 절대 작성하지 마십시오.
+예: p.12, p.127, 127페이지, 299페이지 같은 표현을 절대 쓰지 마십시오.
+문서명과 페이지 번호는 시스템 코드가 답변 하단에 자동으로 추가합니다.
 
 ### 📂 예상 확인자료
-(현장 평가 시 확인하거나 준비해야 할 관련 기록지, 보고서, 체크리스트 등을 불릿 기호(•)를 사용하여 나열)
+현장 평가 시 확인하거나 준비해야 할 관련 기록지, 보고서, 체크리스트 등을 불릿 기호(•)로 제시하십시오.
+
+🚨 중요:
+- 영문 파일명이나 PDF 파일명을 직접 출력하지 마십시오.
+- 페이지 번호를 추측하거나 생성하지 마십시오.
+- 제공된 원문 데이터에 없는 내용을 단정하지 마십시오.
 """
 
 # ============================================================
@@ -842,7 +1005,7 @@ with main_col:
 
         for m in st.session_state.search_msgs:
             with st.chat_message(m["role"]):
-                st.markdown(m["content"])
+                st.markdown(m["content"], unsafe_allow_html=True)
 
     elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
 
@@ -856,17 +1019,10 @@ with main_col:
                         k=3
                     )
 
-                    ctx_list = []
-
-                    for d in random_docs:
-                        p_val = d.metadata.get("page", "")
-                        p_num = f"{p_val + 1}" if isinstance(p_val, int) else str(p_val)
-                        ctx_list.append(f"[페이지: p.{p_num}]\\n{d.page_content}")
-
-                    sample_ctx = "\\n\\n".join(ctx_list)
+                    sample_ctx = build_context_without_page_instruction(random_docs)
 
                     q_stream = get_intelligent_response(
-                        f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요.\\n내용:\\n{sample_ctx}"
+                        f"인증평가 감독관 질문 1개 생성. 실제 현장에서 직원의 지침 숙지 여부를 묻는 날카로운 질문을 하세요. 페이지 번호는 절대 쓰지 마세요.\n\n내용:\n{sample_ctx}"
                     )
 
                     st.session_state.current_q = st.write_stream(q_stream)
@@ -877,7 +1033,7 @@ with main_col:
 
         for m in st.session_state.train_msgs:
             with st.chat_message(m["role"]):
-                st.markdown(m["content"])
+                st.markdown(m["content"], unsafe_allow_html=True)
 
 # ============================================================
 # 📌 우측 AI 표준 답변 가이드
@@ -893,7 +1049,7 @@ with answer_col:
             </li>
             <li>
                 <div class='answer-structure-title'>⚖️ 근거</div>
-                <div class='answer-structure-content'>• 관련 지침서 항목<br>• 5주기 인증기준 번호<br>• 정확한 지침서 페이지 번호</div>
+                <div class='answer-structure-content'>관련 지침 내용과 기준을 설명하고, 실제 페이지는 시스템이 자동 표시합니다.</div>
             </li>
             <li>
                 <div class='answer-structure-title'>📂 예상 확인자료</div>
@@ -927,24 +1083,22 @@ if final_query:
                 try:
                     docs = vdb.similarity_search(final_query, k=15)
 
-                    ctx_list = []
-
-                    for d in docs:
-                        p_val = d.metadata.get("page", "")
-                        p_num = f"{p_val + 1}" if isinstance(p_val, int) else str(p_val)
-                        ctx_list.append(f"[페이지: p.{p_num}]\\n{d.page_content}")
-
-                    ctx_str = "\\n\\n".join(ctx_list)
+                    ctx_str = build_context_without_page_instruction(docs)
+                    reference_html = build_reference_section(docs)
 
                     full_ans = st.write_stream(
                         get_intelligent_response(
-                            f"{SYS_RULE}\\n\\n[원문 데이터]\\n{ctx_str}\\n\\n질문: {final_query}"
+                            f"{SYS_RULE}\n\n[원문 데이터]\n{ctx_str}\n\n질문: {final_query}"
                         )
                     )
 
+                    st.markdown(reference_html, unsafe_allow_html=True)
+
+                    final_answer_with_refs = full_ans + "\n\n" + reference_html
+
                     st.session_state.search_msgs.append({
                         "role": "assistant",
-                        "content": full_ans
+                        "content": final_answer_with_refs
                     })
 
                 except Exception as e:
@@ -970,24 +1124,39 @@ if final_query:
                             k=10
                         )
 
-                        ctx_list = []
-
-                        for d in docs:
-                            p_val = d.metadata.get("page", "")
-                            p_num = f"{p_val + 1}" if isinstance(p_val, int) else str(p_val)
-                            ctx_list.append(f"[페이지: p.{p_num}]\\n{d.page_content}")
-
-                        ctx_str = "\\n\\n".join(ctx_list)
+                        ctx_str = build_context_without_page_instruction(docs)
+                        reference_html = build_reference_section(docs)
 
                         full_ans = st.write_stream(
                             get_intelligent_response(
-                                f"인증평가 감독관 시선에서 직원의 답변 채점 및 보완. 실제 지침서 내용 기반 피드백. 파일명(guide.pdf 등) 절대 출력 금지.\\n질문: {st.session_state.current_q}\\n직원 답변: {final_query}\\n지침 데이터:\\n{ctx_str}"
+                                f"""
+인증평가 감독관 시선에서 직원의 답변을 채점하고 보완점을 제시하십시오.
+
+규칙:
+- 실제 지침서 내용 기반으로만 피드백하십시오.
+- 파일명은 출력하지 마십시오.
+- 페이지 번호는 절대 쓰지 마십시오.
+- 페이지와 문서명은 시스템 코드가 하단에 자동으로 추가합니다.
+
+질문:
+{st.session_state.current_q}
+
+직원 답변:
+{final_query}
+
+지침 데이터:
+{ctx_str}
+"""
                             )
                         )
 
+                        st.markdown(reference_html, unsafe_allow_html=True)
+
+                        final_answer_with_refs = full_ans + "\n\n" + reference_html
+
                         st.session_state.train_msgs.append({
                             "role": "assistant",
-                            "content": full_ans
+                            "content": final_answer_with_refs
                         })
 
                         st.session_state.current_q = None
