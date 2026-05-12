@@ -26,18 +26,15 @@ st.set_page_config(
 )
 
 # ============================================================
-# 🎨 [디자인] PC 원본 복구 + 모바일 전용 보정
+# 🎨 [디자인] PC 원본 유지 + 모바일 전용 보정
 # ============================================================
 st.markdown("""
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
-    :root {
-        color-scheme: light !important;
-    }
+    :root { color-scheme: light !important; }
 
-    html,
-    body {
+    html, body {
         color-scheme: light !important;
         background-color: #f8f9fa !important;
     }
@@ -109,9 +106,7 @@ st.markdown("""
         border-radius: 8px;
     }
 
-    .dashboard-header * {
-        color: #ffffff !important;
-    }
+    .dashboard-header * { color: #ffffff !important; }
 
     .dashboard-header h1 {
         margin: 0;
@@ -282,17 +277,13 @@ st.markdown("""
     /* 📱 모바일 화면 */
     /* ============================================================ */
     @media (max-width: 768px) {
-
-        :root,
-        html,
-        body {
+        :root, html, body {
             color-scheme: light !important;
             background: #f8f9fa !important;
             background-color: #f8f9fa !important;
         }
 
-        html,
-        body,
+        html, body,
         .stApp,
         [data-testid="stAppViewContainer"],
         [data-testid="stMain"],
@@ -413,9 +404,7 @@ st.markdown("""
             display: block !important;
         }
 
-        .welcome-section img {
-            display: none !important;
-        }
+        .welcome-section img { display: none !important; }
 
         .welcome-section h2 {
             font-size: 0.95rem !important;
@@ -433,9 +422,7 @@ st.markdown("""
             color: #475569 !important;
         }
 
-        .welcome-section br {
-            display: none !important;
-        }
+        .welcome-section br { display: none !important; }
 
         .quick-prompts-title {
             font-size: 0.86rem !important;
@@ -445,9 +432,7 @@ st.markdown("""
             letter-spacing: -0.4px !important;
         }
 
-        div[data-testid="stButton"] {
-            margin-bottom: 2px !important;
-        }
+        div[data-testid="stButton"] { margin-bottom: 2px !important; }
 
         div[data-testid="stButton"] button {
             min-height: 30px !important;
@@ -541,13 +526,9 @@ st.markdown("""
             letter-spacing: -0.25px !important;
         }
 
-        .answer-structure-content br {
-            display: none !important;
-        }
+        .answer-structure-content br { display: none !important; }
 
-        .element-container {
-            margin-bottom: 0.22rem !important;
-        }
+        .element-container { margin-bottom: 0.22rem !important; }
 
         div[data-testid="stChatMessage"] {
             background-color: #ffffff !important;
@@ -629,9 +610,7 @@ st.markdown("""
             height: 17px !important;
         }
 
-        hr {
-            margin: 0.35rem 0 !important;
-        }
+        hr { margin: 0.35rem 0 !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -726,6 +705,14 @@ def get_intelligent_text(prompt_text):
 
 
 # ============================================================
+# 📌 검색 보강 설정
+# ============================================================
+VECTOR_K = 30
+EXACT_LIMIT = 20
+FINAL_DOC_LIMIT = 18
+GUIDE_PAGE_OFFSET = -4  # guide 파일은 실제 하단 페이지보다 4 크게 잡히므로 -4 보정
+
+# ============================================================
 # 📌 metadata 기반 출처/페이지 처리
 # ============================================================
 def get_raw_source_from_doc(d):
@@ -741,16 +728,10 @@ def get_raw_source_from_doc(d):
         or ""
     )
 
-    raw_source = os.path.basename(str(raw_source)).strip()
-    return raw_source
+    return os.path.basename(str(raw_source)).strip()
 
 
 def get_source_label(d):
-    """
-    화면 출력용 출처명 변환:
-    manual2 → 핸드북
-    guide   → 지침서
-    """
     raw_source = get_raw_source_from_doc(d)
     source_lower = raw_source.lower()
 
@@ -764,11 +745,6 @@ def get_source_label(d):
 
 
 def extract_page_number(page_value):
-    """
-    현재 전제:
-    - metadata의 page 값이 이미 하단 페이지 번호라고 보고 그대로 사용합니다.
-    - +1 하지 않습니다.
-    """
     if page_value is None or page_value == "":
         return None
 
@@ -810,7 +786,19 @@ def get_doc_page(d):
     elif meta.get("p") is not None:
         raw_page = meta.get("p")
 
-    return extract_page_number(raw_page)
+    page = extract_page_number(raw_page)
+
+    if page is None:
+        return None
+
+    # 지침서 guide 파일은 현재 실제 하단 페이지보다 +4 크게 저장된 상태로 보고 보정
+    if get_source_label(d) == "지침서":
+        try:
+            return max(1, int(page) + GUIDE_PAGE_OFFSET)
+        except Exception:
+            return page
+
+    return page
 
 
 def get_doc_ref_label(d):
@@ -844,10 +832,6 @@ def build_allowed_refs(docs, max_refs=8):
 
 
 def build_context_for_ai(docs):
-    """
-    AI에게 파일명은 넘기지 않고,
-    화면에 표기 가능한 출처명과 페이지 번호만 넘깁니다.
-    """
     ctx_list = []
 
     for idx, d in enumerate(docs, start=1):
@@ -861,10 +845,135 @@ def build_context_for_ai(docs):
     return "\n\n".join(ctx_list)
 
 
+# ============================================================
+# 🔍 검색 보강 로직: 벡터검색 + 정확문구/키워드 포함 후보
+# ============================================================
+def normalize_text(s):
+    if not s:
+        return ""
+    s = str(s)
+    s = re.sub(r"\s+", "", s)
+    s = s.lower()
+    return s
+
+
+def get_query_terms(query):
+    terms = re.findall(r"[가-힣A-Za-z0-9]{2,}", str(query))
+    stopwords = {
+        "알려줘", "어떻게", "되나요", "무엇인가요", "기준", "관련", "대한",
+        "절차", "요약", "설명", "질문", "확인", "있는지"
+    }
+    return [t for t in terms if t not in stopwords]
+
+
+@st.cache_resource
+def get_all_faiss_docs():
+    docs = []
+    try:
+        store = getattr(vdb, "docstore", None)
+        if store is not None and hasattr(store, "_dict"):
+            docs = list(store._dict.values())
+    except Exception:
+        docs = []
+    return docs
+
+
+def keyword_score(query, doc):
+    q_norm = normalize_text(query)
+    text = getattr(doc, "page_content", "") or ""
+    t_norm = normalize_text(text)
+
+    score = 0
+
+    # 사용자가 원문 일부를 그대로 넣은 경우를 강하게 우선
+    if q_norm and q_norm in t_norm:
+        score += 100
+
+    # 원문에서 공백 제외 8자 이상 연속 구간 일부가 들어간 경우
+    if len(q_norm) >= 8:
+        for n in [16, 12, 8]:
+            for i in range(0, max(1, len(q_norm) - n + 1)):
+                piece = q_norm[i:i+n]
+                if len(piece) >= 8 and piece in t_norm:
+                    score += n * 2
+                    break
+
+    # 키워드 포함 점수
+    for term in get_query_terms(query):
+        term_norm = normalize_text(term)
+        if term_norm and term_norm in t_norm:
+            score += 8
+
+    return score
+
+
+def exact_keyword_candidates(query, limit=EXACT_LIMIT):
+    all_docs = get_all_faiss_docs()
+    scored = []
+
+    for d in all_docs:
+        s = keyword_score(query, d)
+        if s > 0:
+            scored.append((s, d))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [d for _, d in scored[:limit]]
+
+
+def doc_identity(d):
+    meta = getattr(d, "metadata", {}) or {}
+    page = get_doc_page(d)
+    src = get_raw_source_from_doc(d)
+    content = (getattr(d, "page_content", "") or "")[:120]
+    return f"{src}|{page}|{content}"
+
+
+def merge_unique_docs(*doc_groups):
+    merged = []
+    seen = set()
+
+    for group in doc_groups:
+        for d in group:
+            key = doc_identity(d)
+            if key not in seen:
+                seen.add(key)
+                merged.append(d)
+
+    return merged
+
+
+def collect_candidate_docs(query):
+    """
+    1) FAISS 벡터 검색 k=30
+    2) 전체 docstore에서 정확문구/키워드 포함 후보 보강
+    3) 키워드 점수 + 벡터검색 순서를 섞어 최종 후보 축소
+    """
+    vector_docs = vdb.similarity_search(query, k=VECTOR_K)
+    exact_docs = exact_keyword_candidates(query, limit=EXACT_LIMIT)
+
+    merged = merge_unique_docs(exact_docs, vector_docs)
+
+    scored = []
+    for idx, d in enumerate(merged):
+        s = keyword_score(query, d)
+        # exact 후보를 앞에 둔 효과 + 기존 순서 보존
+        score = s - (idx * 0.01)
+        scored.append((score, idx, d))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    final_docs = [d for _, _, d in scored[:FINAL_DOC_LIMIT]]
+
+    # 점수가 낮아도 벡터검색 상위 일부는 안전하게 포함
+    final_docs = merge_unique_docs(final_docs, vector_docs[:8])
+
+    return final_docs[:FINAL_DOC_LIMIT]
+
+
+# ============================================================
+# 🧹 출력 보정
+# ============================================================
 def remove_file_names_and_forbidden_words(text):
-    """
-    manual, guide, pdf 등 파일명성 표현 제거.
-    """
     if not text:
         return ""
 
@@ -889,9 +998,6 @@ def remove_file_names_and_forbidden_words(text):
 
 
 def force_allowed_refs_only(text, allowed_refs):
-    """
-    답변 안의 근거표기가 허용된 '핸드북 p.숫자 / 지침서 p.숫자' 외에는 남지 않도록 보정합니다.
-    """
     if not text:
         return ""
 
@@ -1087,7 +1193,7 @@ with main_col:
                 with st.spinner("💭 감독관이 지침서를 분석하여 질문을 생성 중..."):
                     random_docs = vdb.similarity_search(
                         random.choice(["지침", "규정"]),
-                        k=3
+                        k=6
                     )
 
                     sample_ctx = build_context_for_ai(random_docs)
@@ -1150,9 +1256,9 @@ if final_query:
             st.markdown(final_query)
 
         with st.chat_message("assistant"):
-            with st.spinner("💭 지침서를 검색하고 답변을 1차 작성 중..."):
+            with st.spinner("💭 지침서를 넓게 검색하고 답변을 1차 작성 중..."):
                 try:
-                    docs = vdb.similarity_search(final_query, k=12)
+                    docs = collect_candidate_docs(final_query)
 
                     ctx_str = build_context_for_ai(docs)
                     allowed_refs = build_allowed_refs(docs, max_refs=8)
@@ -1173,7 +1279,7 @@ if final_query:
 """
                     )
 
-                    with st.spinner("🔎 해당 페이지에 실제 관련 내용이 있는지 재검증 중..."):
+                    with st.spinner("🔎 해당 페이지에 실제 관련 내용이 있는지 AI가 재검증 중..."):
                         verified_answer = get_intelligent_text(
                             f"""
 {VERIFY_RULE}
@@ -1220,10 +1326,7 @@ if final_query:
             with st.chat_message("assistant"):
                 with st.spinner("💭 답변을 기반으로 지침서 부합 여부 채점 중..."):
                     try:
-                        docs = vdb.similarity_search(
-                            st.session_state.current_q,
-                            k=10
-                        )
+                        docs = collect_candidate_docs(st.session_state.current_q)
 
                         ctx_str = build_context_for_ai(docs)
                         allowed_refs = build_allowed_refs(docs, max_refs=8)
@@ -1254,7 +1357,7 @@ if final_query:
 """
                         )
 
-                        with st.spinner("🔎 채점 내용과 해당 페이지 근거를 재검증 중..."):
+                        with st.spinner("🔎 채점 내용과 해당 페이지 근거를 AI가 재검증 중..."):
                             verified_answer = get_intelligent_text(
                                 f"""
 {VERIFY_RULE}
