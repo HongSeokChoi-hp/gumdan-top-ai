@@ -74,6 +74,14 @@ st.markdown("""
         visibility: hidden !important;
     }
 
+
+    div[data-testid="stExpander"] {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        margin-bottom: 12px !important;
+    }
+
     /* ============================================================ */
     /* 🖥️ PC 화면 */
     /* ============================================================ */
@@ -1477,6 +1485,50 @@ def force_allowed_refs_only(text, allowed_refs):
     return text
 
 
+
+# ============================================================
+# 💬 대화 기록 표시: 최신 답변은 펼치고, 이전 대화는 접기
+# ============================================================
+def render_collapsed_chat_history(messages, expander_title="이전 대화 보기"):
+    """
+    이전 질문/답변은 expander 안에 접어서 보관하고,
+    가장 최근 질문/답변 1쌍만 일반 채팅처럼 표시합니다.
+
+    새 질문을 입력해 답변 생성 중일 때는 기존 기록을 전부 expander 안으로 넣어
+    이전 답변이 잔상처럼 보이는 현상을 줄입니다.
+    """
+    if not messages:
+        return
+
+    is_processing = st.session_state.get("processing_new_query", False)
+
+    if is_processing:
+        previous_messages = messages
+        current_messages = []
+    else:
+        # 기본은 마지막 질문/답변 1쌍만 펼침
+        if len(messages) <= 2:
+            previous_messages = []
+            current_messages = messages
+        else:
+            previous_messages = messages[:-2]
+            current_messages = messages[-2:]
+
+    if previous_messages:
+        with st.expander(f"💬 {expander_title}", expanded=False):
+            for m in previous_messages:
+                role_label = "사용자" if m.get("role") == "user" else "AI"
+                content = m.get("content", "")
+                st.markdown(f"**{role_label}**")
+                st.markdown(content, unsafe_allow_html=True)
+                st.divider()
+
+    for m in current_messages:
+        with st.chat_message(m["role"]):
+            st.markdown(m["content"], unsafe_allow_html=True)
+
+
+
 # ============================================================
 # 🏥 로고 Base64 처리
 # ============================================================
@@ -1520,6 +1572,12 @@ if "train_msgs" not in st.session_state:
 
 if "current_q" not in st.session_state:
     st.session_state.current_q = None
+
+if "processing_new_query" not in st.session_state:
+    st.session_state.processing_new_query = False
+
+def mark_processing_new_query():
+    st.session_state.processing_new_query = True
 
 quick_query = None
 
@@ -1602,29 +1660,36 @@ with main_col:
 
         with c1:
             if st.button("💬 낙상 발생 시 보고 절차를 알려줘", use_container_width=True, key="q_fall"):
+                st.session_state.processing_new_query = True
                 quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
 
             if st.button("💬 감염관리 위원회 구성 요건을 알려줘", use_container_width=True, key="q_infection"):
+                st.session_state.processing_new_query = True
                 quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
 
             if st.button("💬 직원의 CPR 이수 기준을 알려줘", use_container_width=True, key="q_cpr"):
+                st.session_state.processing_new_query = True
                 quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
 
         with c2:
             if st.button("💬 화재 발생 시 R.A.C.E. 대응 절차를 알려줘", use_container_width=True, key="q_fire"):
+                st.session_state.processing_new_query = True
                 quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
 
             if st.button("💬 근접오류 보고 활성화 방법을 알려줘", use_container_width=True, key="q_nearmiss"):
+                st.session_state.processing_new_query = True
                 quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
 
             if st.button("💬 병동 환경 점검 필수 항목을 알려줘", use_container_width=True, key="q_ward"):
+                st.session_state.processing_new_query = True
                 quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
 
         st.write("<br>", unsafe_allow_html=True)
 
-        for m in st.session_state.search_msgs:
-            with st.chat_message(m["role"]):
-                st.markdown(m["content"])
+        render_collapsed_chat_history(
+            st.session_state.search_msgs,
+            expander_title="이전 검색 대화 보기"
+        )
 
     elif mode == "🕵️ 모의감독관 훈련 (예상 10~20초)":
 
@@ -1650,9 +1715,10 @@ with main_col:
                         "content": st.session_state.current_q
                     })
 
-        for m in st.session_state.train_msgs:
-            with st.chat_message(m["role"]):
-                st.markdown(m["content"])
+        render_collapsed_chat_history(
+            st.session_state.train_msgs,
+            expander_title="이전 훈련 대화 보기"
+        )
 
 # ============================================================
 # 📌 우측 AI 표준 답변 가이드
@@ -1681,7 +1747,11 @@ with answer_col:
 # ============================================================
 # 💬 채팅 입력 처리
 # ============================================================
-chat_input_query = st.chat_input("인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오...")
+chat_input_query = st.chat_input(
+    "인증 지침에 관해 질문하거나 감독관의 질문에 답변하십시오...",
+    key="main_chat_input",
+    on_submit=mark_processing_new_query
+)
 
 final_query = chat_input_query or quick_query
 
@@ -1735,9 +1805,11 @@ if final_query:
                             "role": "assistant",
                             "content": fast_answer
                         })
+                        st.session_state.processing_new_query = False
 
                     except Exception as e:
                         st.error(f"🚨 오류: {e}")
+                        st.session_state.processing_new_query = False
 
         # ------------------------------------------------------------
         # 🧪 정밀검증: 지침서+핸드북 / 검증 / AI 페이지 선별
@@ -1794,9 +1866,11 @@ if final_query:
                             "role": "assistant",
                             "content": final_answer
                         })
+                        st.session_state.processing_new_query = False
 
                     except Exception as e:
                         st.error(f"🚨 오류: {e}")
+                        st.session_state.processing_new_query = False
 
     else:
 
@@ -1873,8 +1947,10 @@ if final_query:
                             "role": "assistant",
                             "content": final_answer
                         })
+                        st.session_state.processing_new_query = False
 
                         st.session_state.current_q = None
 
                     except Exception as e:
                         st.error(f"🚨 오류: {e}")
+                        st.session_state.processing_new_query = False
