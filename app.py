@@ -75,6 +75,23 @@ st.markdown("""
     }
 
 
+
+    .streaming-answer-card {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 18px 20px !important;
+        margin-top: 8px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04) !important;
+    }
+
+    .thinking-line {
+        color: #475569 !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+    }
+
     div[data-testid="stExpander"] {
         background-color: #ffffff !important;
         border: 1px solid #e2e8f0 !important;
@@ -584,6 +601,18 @@ st.markdown("""
         }
 
         .element-container { margin-bottom: 0.22rem !important; }
+
+
+        .streaming-answer-card {
+            padding: 12px 13px !important;
+            border-radius: 10px !important;
+            margin-top: 6px !important;
+            margin-bottom: 8px !important;
+        }
+
+        .thinking-line {
+            font-size: 0.82rem !important;
+        }
 
         div[data-testid="stChatMessage"] {
             background-color: #ffffff !important;
@@ -1529,6 +1558,42 @@ def render_collapsed_chat_history(messages, expander_title="이전 대화 보기
 
 
 
+
+# ============================================================
+# ✍️ 최신 답변 자리 고정 스트리밍 출력
+# ============================================================
+def stream_answer_at_latest_position(prompt_text, thinking_text="💭 생각 중입니다..."):
+    """
+    새 질문 바로 아래에 답변 영역을 고정한 뒤,
+    그 자리에서 st.write_stream()을 실행합니다.
+
+    목적:
+    - st.write_stream() 유지
+    - 생각 중 문구가 화면 상단이 아니라 최신 질문 아래에 표시
+    - 답변 생성 영역이 채팅 입력창 바로 위 흐름에 위치
+    - 완료 후 같은 자리에 최종 답변 고정
+    """
+    answer_slot = st.empty()
+
+    with answer_slot.container():
+        st.markdown(
+            f"""
+<div class="streaming-answer-card">
+    <p class="thinking-line">{thinking_text}</p>
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+    with answer_slot.container():
+        with st.chat_message("assistant"):
+            streamed_text = st.write_stream(
+                get_intelligent_response(prompt_text)
+            )
+
+    return streamed_text
+
+
 # ============================================================
 # 🏥 로고 Base64 처리
 # ============================================================
@@ -1772,7 +1837,7 @@ if final_query:
         # ------------------------------------------------------------
         if mode == "🔍 빠른검색 (예상 3~7초)":
             with st.chat_message("assistant"):
-                with st.spinner("💭 지침서를 빠르게 검색하고 답변을 작성 중..."):
+                with st.spinner("🔎 관련 지침을 찾는 중..."):
                     try:
                         docs = collect_fast_guide_docs(final_query, k=6)
                         ctx_str = build_fast_context_for_ai(docs)
@@ -1792,10 +1857,10 @@ if final_query:
 """
                             st.markdown(fast_answer)
                         else:
-                            fast_answer = st.write_stream(
-                                get_intelligent_response(
-                                    f"{FAST_SYS_RULE}\n\n[지침서 원문 데이터]\n{ctx_str}\n\n[사용자 질문]\n{final_query}"
-                                )
+                            # 최신 질문 바로 아래 고정된 위치에서 스트리밍 출력합니다.
+                            fast_answer = stream_answer_at_latest_position(
+                                f"{FAST_SYS_RULE}\n\n[지침서 원문 데이터]\n{ctx_str}\n\n[사용자 질문]\n{final_query}",
+                                thinking_text="💭 지침서를 빠르게 검색하고 답변을 작성 중..."
                             )
 
                         fast_answer = remove_file_names_and_forbidden_words(fast_answer)
