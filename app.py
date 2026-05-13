@@ -1262,11 +1262,12 @@ def merge_unique_docs(*doc_groups):
 
 
 
-def collect_fast_guide_docs(query, k=10):
+def collect_fast_guide_docs(query, k=6):
     """
     빠른검색 전용:
     - faiss_index_guide 지침서 전용 인덱스만 검색
-    - 후보는 작게 가져와 속도 우선
+    - 후보 k=6으로 제한
+    - 보강검색 제거
     - 페이지 검증/정밀검증 없음
     """
     docs = []
@@ -1278,17 +1279,9 @@ def collect_fast_guide_docs(query, k=10):
     except Exception:
         pass
 
-    # 지침서 후보가 너무 적으면 한 번만 보강
-    if len(docs) < 4:
-        try:
-            second = guide_vdb.similarity_search(query, k=20)
-            filtered = [d for d in second if get_source_label(d) == "지침서"]
-            docs.extend(filtered if filtered else second)
-        except Exception:
-            pass
-
     unique = []
     seen = set()
+
     for d in docs:
         key = doc_identity(d)
         if key not in seen:
@@ -1303,11 +1296,13 @@ def build_fast_context_for_ai(docs):
     빠른검색용 원문 데이터:
     - 페이지/파일명 노출 금지
     - 지침서 내용 조각만 전달
+    - 조각당 900자로 제한하여 속도 개선
     """
     ctx_list = []
 
     for idx, d in enumerate(docs, start=1):
         content = getattr(d, "page_content", "") or ""
+        content = content[:900]
         ctx_list.append(f"[지침서 근거자료 {idx}]\n{content}")
 
     return "\n\n".join(ctx_list)
@@ -1322,15 +1317,16 @@ FAST_SYS_RULE = """당신은 '검단탑병원 인증 AI 시스템'입니다.
 답변은 반드시 아래 3단 구조로 작성하십시오.
 
 ### 💡 답변 요약
-- 질문에 대한 핵심 내용을 2~3줄로 요약하십시오.
+- 질문에 대한 핵심 내용을 2~3줄로 간결하게 요약하십시오.
 
 ### ⚖️ 근거
-- 지침서에서 확인되는 관련 기준, 절차, 조사방법을 설명하십시오.
+- 지침서에서 확인되는 관련 기준, 절차, 조사방법을 간결하게 설명하십시오.
 - 페이지 번호는 쓰지 마십시오.
 - 원문 데이터에 없는 내용은 단정하지 마십시오.
+- 불필요한 장문 설명은 피하십시오.
 
 ### 📂 예상 확인자료
-- 현장 평가 시 확인하거나 준비해야 할 규정, 기록지, 보고서, 체크리스트 등을 불릿 기호로 제시하십시오.
+- 현장 평가 시 확인하거나 준비해야 할 규정, 기록지, 보고서, 체크리스트 등을 핵심만 불릿 기호로 제시하십시오.
 """
 
 
@@ -1708,7 +1704,7 @@ if final_query:
             with st.chat_message("assistant"):
                 with st.spinner("💭 지침서를 빠르게 검색하고 답변을 작성 중..."):
                     try:
-                        docs = collect_fast_guide_docs(final_query, k=10)
+                        docs = collect_fast_guide_docs(final_query, k=6)
                         ctx_str = build_fast_context_for_ai(docs)
 
                         if not docs:
