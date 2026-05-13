@@ -698,9 +698,14 @@ if not st.session_state.get("authenticated", False):
 # 🧠 [엔진] DB 로드
 # ============================================================
 @st.cache_resource
-def load_intelligent_db():
+def load_intelligent_dbs():
+    """
+    인덱스 2개 로드:
+    - faiss_index_saved : 지침서 + 핸드북 전체 인덱스 / 정밀검증·모의훈련용
+    - faiss_index_guide : 지침서 전용 인덱스 / 빠른검색용
+    """
     if not os.path.exists("faiss_index_saved"):
-        return None, "faiss_index_saved 데이터가 없습니다."
+        return None, None, "faiss_index_saved 데이터가 없습니다."
 
     try:
         embeddings = GoogleGenerativeAIEmbeddings(
@@ -708,19 +713,36 @@ def load_intelligent_db():
             google_api_key=random.choice(API_KEYS)
         )
 
-        vdb = FAISS.load_local(
+        vdb_all = FAISS.load_local(
             "faiss_index_saved",
             embeddings,
             allow_dangerous_deserialization=True
         )
 
-        return vdb, None
+        vdb_guide = None
+
+        if os.path.exists("faiss_index_guide"):
+            try:
+                vdb_guide = FAISS.load_local(
+                    "faiss_index_guide",
+                    embeddings,
+                    allow_dangerous_deserialization=True
+                )
+            except Exception as guide_error:
+                # 지침서 전용 인덱스 로드 실패 시 전체 인덱스로 fallback
+                vdb_guide = None
+                print(f"faiss_index_guide 로드 실패, 전체 인덱스로 대체: {guide_error}")
+
+        if vdb_guide is None:
+            vdb_guide = vdb_all
+
+        return vdb_all, vdb_guide, None
 
     except Exception as e:
-        return None, f"데이터베이스 로드 실패: {e}"
+        return None, None, f"데이터베이스 로드 실패: {e}"
 
 
-vdb, db_status_msg = load_intelligent_db()
+vdb, guide_vdb, db_status_msg = load_intelligent_dbs()
 
 if not vdb:
     st.error(f"🚨 엔진 가동 실패: {db_status_msg}")
@@ -1243,23 +1265,25 @@ def merge_unique_docs(*doc_groups):
 def collect_fast_guide_docs(query, k=10):
     """
     빠른검색 전용:
-    - 지침서만 검색
+    - faiss_index_guide 지침서 전용 인덱스만 검색
     - 후보는 작게 가져와 속도 우선
     - 페이지 검증/정밀검증 없음
     """
     docs = []
 
     try:
-        first = vdb.similarity_search(query, k=k)
-        docs.extend([d for d in first if get_source_label(d) == "지침서"])
+        first = guide_vdb.similarity_search(query, k=k)
+        filtered = [d for d in first if get_source_label(d) == "지침서"]
+        docs.extend(filtered if filtered else first)
     except Exception:
         pass
 
     # 지침서 후보가 너무 적으면 한 번만 보강
     if len(docs) < 4:
         try:
-            second = vdb.similarity_search(query, k=20)
-            docs.extend([d for d in second if get_source_label(d) == "지침서"])
+            second = guide_vdb.similarity_search(query, k=20)
+            filtered = [d for d in second if get_source_label(d) == "지침서"]
+            docs.extend(filtered if filtered else second)
         except Exception:
             pass
 
