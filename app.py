@@ -81,6 +81,25 @@ st.markdown("""
         margin-bottom: 12px !important;
     }
 
+
+    /* 답변 생성 중 Streamlit이 이전 화면을 흐리게 남기는 stale element 숨김 */
+    div[data-testid="staleElement"],
+    div[data-testid="staleElement"] *,
+    .stale-element,
+    .stale-element *,
+    [data-stale="true"],
+    [data-stale="true"] * {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    /* 새 질문/생각중/답변을 입력창 가까운 아래쪽으로 내려보내는 공간 */
+    .latest-chat-spacer {
+        height: clamp(140px, 28vh, 360px);
+        width: 100%;
+    }
+
     /* ============================================================ */
     /* 🖥️ PC 화면 */
     /* ============================================================ */
@@ -583,6 +602,11 @@ st.markdown("""
         }
 
         .element-container { margin-bottom: 0.22rem !important; }
+
+
+        .latest-chat-spacer {
+            height: clamp(90px, 18vh, 190px) !important;
+        }
 
         div[data-testid="stChatMessage"] {
             background-color: #ffffff !important;
@@ -1491,11 +1515,7 @@ def force_allowed_refs_only(text, allowed_refs):
 def render_collapsed_chat_history(messages, expander_title="이전 대화 보기"):
     """
     기존 대화는 전부 expander 안에 접어서 보관합니다.
-
-    핵심:
-    - 이전 답변을 최신 답변 영역에 펼쳐두지 않습니다.
-    - 새 질문을 입력했을 때 이전 답변이 흐릿한 잔상처럼 남는 문제를 방지합니다.
-    - 새 질문/새 답변은 final_query 처리 구간에서만 현재 화면에 표시됩니다.
+    새 질문/새 답변만 현재 화면에 표시해 이전 답변 잔상을 줄입니다.
     """
     if not messages:
         return
@@ -1508,8 +1528,6 @@ def render_collapsed_chat_history(messages, expander_title="이전 대화 보기
             st.markdown(f"**{role_label}**")
             st.markdown(content, unsafe_allow_html=True)
             st.divider()
-
-
 
 
 # ============================================================
@@ -1767,6 +1785,8 @@ if final_query:
             "content": final_query
         })
 
+        st.markdown("<div class='latest-chat-spacer'></div>", unsafe_allow_html=True)
+
         with st.chat_message("user"):
             st.markdown(final_query)
 
@@ -1886,6 +1906,8 @@ if final_query:
                 "role": "user",
                 "content": final_query
             })
+
+            st.markdown("<div class='latest-chat-spacer'></div>", unsafe_allow_html=True)
 
             with st.chat_message("user"):
                 st.markdown(final_query)
