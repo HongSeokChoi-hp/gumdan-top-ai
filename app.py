@@ -1490,41 +1490,24 @@ def force_allowed_refs_only(text, allowed_refs):
 # ============================================================
 def render_collapsed_chat_history(messages, expander_title="이전 대화 보기"):
     """
-    이전 질문/답변은 expander 안에 접어서 보관하고,
-    가장 최근 질문/답변 1쌍만 일반 채팅처럼 표시합니다.
+    기존 대화는 전부 expander 안에 접어서 보관합니다.
 
-    새 질문을 입력해 답변 생성 중일 때는 기존 기록을 전부 expander 안으로 넣어
-    이전 답변이 잔상처럼 보이는 현상을 줄입니다.
+    핵심:
+    - 이전 답변을 최신 답변 영역에 펼쳐두지 않습니다.
+    - 새 질문을 입력했을 때 이전 답변이 흐릿한 잔상처럼 남는 문제를 방지합니다.
+    - 새 질문/새 답변은 final_query 처리 구간에서만 현재 화면에 표시됩니다.
     """
     if not messages:
         return
 
-    is_processing = st.session_state.get("processing_new_query", False)
+    with st.expander(f"💬 {expander_title}", expanded=False):
+        for m in messages:
+            role_label = "사용자" if m.get("role") == "user" else "AI"
+            content = m.get("content", "")
 
-    if is_processing:
-        previous_messages = messages
-        current_messages = []
-    else:
-        # 기본은 마지막 질문/답변 1쌍만 펼침
-        if len(messages) <= 2:
-            previous_messages = []
-            current_messages = messages
-        else:
-            previous_messages = messages[:-2]
-            current_messages = messages[-2:]
-
-    if previous_messages:
-        with st.expander(f"💬 {expander_title}", expanded=False):
-            for m in previous_messages:
-                role_label = "사용자" if m.get("role") == "user" else "AI"
-                content = m.get("content", "")
-                st.markdown(f"**{role_label}**")
-                st.markdown(content, unsafe_allow_html=True)
-                st.divider()
-
-    for m in current_messages:
-        with st.chat_message(m["role"]):
-            st.markdown(m["content"], unsafe_allow_html=True)
+            st.markdown(f"**{role_label}**")
+            st.markdown(content, unsafe_allow_html=True)
+            st.divider()
 
 
 
@@ -1535,12 +1518,7 @@ def render_collapsed_chat_history(messages, expander_title="이전 대화 보기
 def stream_answer_in_current_chat_message(prompt_text, thinking_text="💭 생각 중입니다..."):
     """
     반드시 바깥의 with st.chat_message("assistant") 안에서만 호출합니다.
-
-    목적:
-    - st.write_stream() 유지
-    - 로봇 아이콘 중복 방지
-    - 상단 spinner 방지
-    - 최신 질문 바로 아래 AI 말풍선 1개 안에서 생각중 → 답변 스트리밍
+    로봇 아이콘 중복 없이 같은 AI 말풍선 안에서 생각중 → 답변 스트리밍을 수행합니다.
     """
     thinking_slot = st.empty()
     thinking_slot.markdown(f"**{thinking_text}**")
