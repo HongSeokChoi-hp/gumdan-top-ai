@@ -1239,6 +1239,77 @@ def merge_unique_docs(*doc_groups):
     return merged
 
 
+
+def collect_fast_guide_docs(query, k=10):
+    """
+    빠른검색 전용:
+    - 지침서만 검색
+    - 후보는 작게 가져와 속도 우선
+    - 페이지 검증/정밀검증 없음
+    """
+    docs = []
+
+    try:
+        first = vdb.similarity_search(query, k=k)
+        docs.extend([d for d in first if get_source_label(d) == "지침서"])
+    except Exception:
+        pass
+
+    # 지침서 후보가 너무 적으면 한 번만 보강
+    if len(docs) < 4:
+        try:
+            second = vdb.similarity_search(query, k=20)
+            docs.extend([d for d in second if get_source_label(d) == "지침서"])
+        except Exception:
+            pass
+
+    unique = []
+    seen = set()
+    for d in docs:
+        key = doc_identity(d)
+        if key not in seen:
+            seen.add(key)
+            unique.append(d)
+
+    return unique[:k]
+
+
+def build_fast_context_for_ai(docs):
+    """
+    빠른검색용 원문 데이터:
+    - 페이지/파일명 노출 금지
+    - 지침서 내용 조각만 전달
+    """
+    ctx_list = []
+
+    for idx, d in enumerate(docs, start=1):
+        content = getattr(d, "page_content", "") or ""
+        ctx_list.append(f"[지침서 근거자료 {idx}]\n{content}")
+
+    return "\n\n".join(ctx_list)
+
+
+FAST_SYS_RULE = """당신은 '검단탑병원 인증 AI 시스템'입니다.
+
+사용자의 질문에 대해 제공된 [지침서 원문 데이터]만 근거로 답변하십시오.
+빠른검색 모드이므로 페이지 번호는 절대 작성하지 마십시오.
+파일명, manual, guide, pdf, hwp 같은 표현도 절대 출력하지 마십시오.
+
+답변은 반드시 아래 3단 구조로 작성하십시오.
+
+### 💡 답변 요약
+- 질문에 대한 핵심 내용을 2~3줄로 요약하십시오.
+
+### ⚖️ 근거
+- 지침서에서 확인되는 관련 기준, 절차, 조사방법을 설명하십시오.
+- 페이지 번호는 쓰지 마십시오.
+- 원문 데이터에 없는 내용은 단정하지 마십시오.
+
+### 📂 예상 확인자료
+- 현장 평가 시 확인하거나 준비해야 할 규정, 기록지, 보고서, 체크리스트 등을 불릿 기호로 제시하십시오.
+"""
+
+
 def collect_candidate_docs(query):
     """
     1) FAISS 벡터 검색 k=30
@@ -1410,11 +1481,11 @@ st.markdown(f"""
 # 🧩 모드 선택
 # ============================================================
 if "current_mode" not in st.session_state:
-    st.session_state.current_mode = "🔍 인증 지침서 검색"
+    st.session_state.current_mode = "🔍 빠른검색 (예상 3~7초)"
 
 st.session_state.current_mode = st.radio(
     "모드 선택",
-    ["🔍 인증 지침서 검색", "🕵️‍♂️ 실전 모의감독관 훈련"],
+    ["🔍 빠른검색 (예상 3~7초)", "🧪 정밀검증 (예상 15~40초)", "🕵️ 모의감독관 훈련 (예상 10~20초)"],
     horizontal=True,
     label_visibility="collapsed"
 )
@@ -1500,7 +1571,7 @@ with main_col:
     </div>
     """, unsafe_allow_html=True)
 
-    if mode == "🔍 인증 지침서 검색":
+    if mode in ["🔍 빠른검색 (예상 3~7초)", "🧪 정밀검증 (예상 15~40초)"]:
 
         st.markdown(
             "<div class='quick-prompts-title'>💡 이렇게 질문해 보세요 (클릭 시 바로 검색됩니다)</div>",
@@ -1535,7 +1606,7 @@ with main_col:
             with st.chat_message(m["role"]):
                 st.markdown(m["content"])
 
-    elif mode == "🕵️‍♂️ 실전 모의감독관 훈련":
+    elif mode == "🕵️ 모의감독관 훈련 (예상 10~20초)":
 
         st.info("💡 하단의 채팅창에 답변을 입력하면 AI가 지침서 기반으로 채점합니다.")
 
@@ -1596,7 +1667,7 @@ final_query = chat_input_query or quick_query
 
 if final_query:
 
-    if mode == "🔍 인증 지침서 검색":
+    if mode in ["🔍 빠른검색 (예상 3~7초)", "🧪 정밀검증 (예상 15~40초)"]:
 
         st.session_state.search_msgs.append({
             "role": "user",
@@ -1606,17 +1677,62 @@ if final_query:
         with st.chat_message("user"):
             st.markdown(final_query)
 
-        with st.chat_message("assistant"):
-            with st.spinner("💭 지침서를 넓게 검색하고 답변을 1차 작성 중..."):
-                try:
-                    docs = collect_candidate_docs(final_query)
+        # ------------------------------------------------------------
+        # 🔍 빠른검색: 지침서만 / AI 1회 / 페이지 없음
+        # ------------------------------------------------------------
+        if mode == "🔍 빠른검색 (예상 3~7초)":
+            with st.chat_message("assistant"):
+                with st.spinner("💭 지침서를 빠르게 검색하고 답변을 작성 중..."):
+                    try:
+                        docs = collect_fast_guide_docs(final_query, k=10)
+                        ctx_str = build_fast_context_for_ai(docs)
 
-                    ctx_str = build_context_for_ai(docs)
-                    allowed_refs = build_allowed_refs(docs, max_refs=12, max_per_source=6)
-                    allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
+                        if not docs:
+                            fast_answer = """### 💡 답변 요약
+- 지침서에서 질문과 직접 관련된 내용을 충분히 찾지 못했습니다.
 
-                    draft_answer = get_intelligent_text(
-                        f"""
+### ⚖️ 근거
+- 빠른검색은 지침서 일부 후보를 빠르게 확인하는 방식입니다.
+- 정확한 근거 확인이 필요하면 정밀검증 모드를 사용해 주세요.
+
+### 📂 예상 확인자료
+- 관련 규정
+- 관련 절차서
+- 부서별 기록지 또는 체크리스트
+"""
+                            st.markdown(fast_answer)
+                        else:
+                            fast_answer = st.write_stream(
+                                get_intelligent_response(
+                                    f"{FAST_SYS_RULE}\n\n[지침서 원문 데이터]\n{ctx_str}\n\n[사용자 질문]\n{final_query}"
+                                )
+                            )
+
+                        fast_answer = remove_file_names_and_forbidden_words(fast_answer)
+                        fast_answer = strip_page_refs_from_ai_answer(fast_answer)
+
+                        st.session_state.search_msgs.append({
+                            "role": "assistant",
+                            "content": fast_answer
+                        })
+
+                    except Exception as e:
+                        st.error(f"🚨 오류: {e}")
+
+        # ------------------------------------------------------------
+        # 🧪 정밀검증: 지침서+핸드북 / 검증 / AI 페이지 선별
+        # ------------------------------------------------------------
+        else:
+            with st.chat_message("assistant"):
+                with st.spinner("💭 지침서와 핸드북을 넓게 검색하고 답변을 1차 작성 중..."):
+                    try:
+                        docs = collect_candidate_docs(final_query)
+
+                        ctx_str = build_context_for_ai(docs)
+                        allowed_refs = build_allowed_refs(docs, max_refs=12, max_per_source=6)
+
+                        draft_answer = get_intelligent_text(
+                            f"""
 {SYS_RULE}
 
 [원문 데이터]
@@ -1625,11 +1741,11 @@ if final_query:
 [사용자 질문]
 {final_query}
 """
-                    )
+                        )
 
-                    with st.spinner("🔎 해당 페이지에 실제 관련 내용이 있는지 AI가 재검증 중..."):
-                        verified_answer = get_intelligent_text(
-                            f"""
+                        with st.spinner("🔎 답변 내용과 근거 페이지를 AI가 재검증 중..."):
+                            verified_answer = get_intelligent_text(
+                                f"""
 {VERIFY_RULE}
 
 [원문 데이터]
@@ -1641,26 +1757,26 @@ if final_query:
 [초안 답변]
 {draft_answer}
 """
-                        )
+                            )
 
-                    verified_answer = remove_file_names_and_forbidden_words(verified_answer)
-                    verified_answer = strip_page_refs_from_ai_answer(verified_answer)
+                        verified_answer = remove_file_names_and_forbidden_words(verified_answer)
+                        verified_answer = strip_page_refs_from_ai_answer(verified_answer)
 
-                    selected_refs = select_verified_refs_by_ai(final_query, docs, allowed_refs)
-                    reference_html = build_verified_reference_html(selected_refs, max_refs=4)
-                    final_answer = verified_answer + "\n\n" + reference_html
+                        selected_refs = select_verified_refs_by_ai(final_query, docs, allowed_refs)
+                        reference_html = build_verified_reference_html(selected_refs, max_refs=4)
+                        final_answer = verified_answer + "\n\n" + reference_html
 
-                    st.markdown(verified_answer)
-                    if reference_html:
-                        st.markdown(reference_html, unsafe_allow_html=True)
+                        st.markdown(verified_answer)
+                        if reference_html:
+                            st.markdown(reference_html, unsafe_allow_html=True)
 
-                    st.session_state.search_msgs.append({
-                        "role": "assistant",
-                        "content": final_answer
-                    })
+                        st.session_state.search_msgs.append({
+                            "role": "assistant",
+                            "content": final_answer
+                        })
 
-                except Exception as e:
-                    st.error(f"🚨 오류: {e}")
+                    except Exception as e:
+                        st.error(f"🚨 오류: {e}")
 
     else:
 
@@ -1681,7 +1797,6 @@ if final_query:
 
                         ctx_str = build_context_for_ai(docs)
                         allowed_refs = build_allowed_refs(docs, max_refs=12, max_per_source=6)
-                        allowed_refs_text = ", ".join(allowed_refs) if allowed_refs else "근거표기 정보 없음"
 
                         draft_answer = get_intelligent_text(
                             f"""
