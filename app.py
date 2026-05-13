@@ -74,24 +74,6 @@ st.markdown("""
         visibility: hidden !important;
     }
 
-
-
-    .streaming-answer-card {
-        background-color: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        padding: 18px 20px !important;
-        margin-top: 8px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04) !important;
-    }
-
-    .thinking-line {
-        color: #475569 !important;
-        font-weight: 700 !important;
-        margin: 0 !important;
-    }
-
     div[data-testid="stExpander"] {
         background-color: #ffffff !important;
         border: 1px solid #e2e8f0 !important;
@@ -601,18 +583,6 @@ st.markdown("""
         }
 
         .element-container { margin-bottom: 0.22rem !important; }
-
-
-        .streaming-answer-card {
-            padding: 12px 13px !important;
-            border-radius: 10px !important;
-            margin-top: 6px !important;
-            margin-bottom: 8px !important;
-        }
-
-        .thinking-line {
-            font-size: 0.82rem !important;
-        }
 
         div[data-testid="stChatMessage"] {
             background-color: #ffffff !important;
@@ -1562,34 +1532,24 @@ def render_collapsed_chat_history(messages, expander_title="이전 대화 보기
 # ============================================================
 # ✍️ 최신 답변 자리 고정 스트리밍 출력
 # ============================================================
-def stream_answer_at_latest_position(prompt_text, thinking_text="💭 생각 중입니다..."):
+def stream_answer_in_current_chat_message(prompt_text, thinking_text="💭 생각 중입니다..."):
     """
-    새 질문 바로 아래에 답변 영역을 고정한 뒤,
-    그 자리에서 st.write_stream()을 실행합니다.
+    반드시 바깥의 with st.chat_message("assistant") 안에서만 호출합니다.
 
     목적:
     - st.write_stream() 유지
-    - 생각 중 문구가 화면 상단이 아니라 최신 질문 아래에 표시
-    - 답변 생성 영역이 채팅 입력창 바로 위 흐름에 위치
-    - 완료 후 같은 자리에 최종 답변 고정
+    - 로봇 아이콘 중복 방지
+    - 상단 spinner 방지
+    - 최신 질문 바로 아래 AI 말풍선 1개 안에서 생각중 → 답변 스트리밍
     """
-    answer_slot = st.empty()
+    thinking_slot = st.empty()
+    thinking_slot.markdown(f"**{thinking_text}**")
 
-    with answer_slot.container():
-        st.markdown(
-            f"""
-<div class="streaming-answer-card">
-    <p class="thinking-line">{thinking_text}</p>
-</div>
-""",
-            unsafe_allow_html=True
-        )
+    streamed_text = st.write_stream(
+        get_intelligent_response(prompt_text)
+    )
 
-    with answer_slot.container():
-        with st.chat_message("assistant"):
-            streamed_text = st.write_stream(
-                get_intelligent_response(prompt_text)
-            )
+    thinking_slot.empty()
 
     return streamed_text
 
@@ -1837,13 +1797,17 @@ if final_query:
         # ------------------------------------------------------------
         if mode == "🔍 빠른검색 (예상 3~7초)":
             with st.chat_message("assistant"):
-                with st.spinner("🔎 관련 지침을 찾는 중..."):
-                    try:
-                        docs = collect_fast_guide_docs(final_query, k=6)
-                        ctx_str = build_fast_context_for_ai(docs)
+                try:
+                    status_slot = st.empty()
+                    status_slot.markdown("**🔎 관련 지침을 찾는 중...**")
 
-                        if not docs:
-                            fast_answer = """### 💡 답변 요약
+                    docs = collect_fast_guide_docs(final_query, k=6)
+                    ctx_str = build_fast_context_for_ai(docs)
+
+                    status_slot.empty()
+
+                    if not docs:
+                        fast_answer = """### 💡 답변 요약
 - 지침서에서 질문과 직접 관련된 내용을 충분히 찾지 못했습니다.
 
 ### ⚖️ 근거
@@ -1855,26 +1819,25 @@ if final_query:
 - 관련 절차서
 - 부서별 기록지 또는 체크리스트
 """
-                            st.markdown(fast_answer)
-                        else:
-                            # 최신 질문 바로 아래 고정된 위치에서 스트리밍 출력합니다.
-                            fast_answer = stream_answer_at_latest_position(
-                                f"{FAST_SYS_RULE}\n\n[지침서 원문 데이터]\n{ctx_str}\n\n[사용자 질문]\n{final_query}",
-                                thinking_text="💭 지침서를 빠르게 검색하고 답변을 작성 중..."
-                            )
+                        st.markdown(fast_answer)
+                    else:
+                        fast_answer = stream_answer_in_current_chat_message(
+                            f"{FAST_SYS_RULE}\n\n[지침서 원문 데이터]\n{ctx_str}\n\n[사용자 질문]\n{final_query}",
+                            thinking_text="💭 답변을 작성 중..."
+                        )
 
-                        fast_answer = remove_file_names_and_forbidden_words(fast_answer)
-                        fast_answer = strip_page_refs_from_ai_answer(fast_answer)
+                    fast_answer = remove_file_names_and_forbidden_words(fast_answer)
+                    fast_answer = strip_page_refs_from_ai_answer(fast_answer)
 
-                        st.session_state.search_msgs.append({
-                            "role": "assistant",
-                            "content": fast_answer
-                        })
-                        st.session_state.processing_new_query = False
+                    st.session_state.search_msgs.append({
+                        "role": "assistant",
+                        "content": fast_answer
+                    })
+                    st.session_state.processing_new_query = False
 
-                    except Exception as e:
-                        st.error(f"🚨 오류: {e}")
-                        st.session_state.processing_new_query = False
+                except Exception as e:
+                    st.error(f"🚨 오류: {e}")
+                    st.session_state.processing_new_query = False
 
         # ------------------------------------------------------------
         # 🧪 정밀검증: 지침서+핸드북 / 검증 / AI 페이지 선별
