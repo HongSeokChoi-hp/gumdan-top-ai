@@ -1701,9 +1701,9 @@ with main_col:
                 st.session_state.processing_new_query = True
                 quick_query = "손위생은 어떤 순간에 반드시 시행해야 하나요?"
 
-            if st.button("💬 화재 발생 시 직원은 어떤 순서로 대응해야 하나요?", use_container_width=True, key="q_fire_response"):
+            if st.button("💬 감염성 폐기물은 어떻게 분리·보관해야 하나요?", use_container_width=True, key="q_infectious_waste"):
                 st.session_state.processing_new_query = True
-                quick_query = "화재 발생 시 직원은 어떤 순서로 대응해야 하나요?"
+                quick_query = "감염성 폐기물은 어떻게 분리·보관해야 하나요?"
 
         st.write("<br>", unsafe_allow_html=True)
 
