@@ -1680,30 +1680,30 @@ with main_col:
         c1, c2 = st.columns(2)
 
         with c1:
-            if st.button("💬 낙상 발생 시 보고 절차를 알려줘", use_container_width=True, key="q_fall"):
+            if st.button("💬 환자 확인은 어떤 상황에서 시행해야 하나요?", use_container_width=True, key="q_patient_id"):
                 st.session_state.processing_new_query = True
-                quick_query = "낙상 발생 시 보고 절차와 타임라인은 어떻게 되나요?"
+                quick_query = "환자 확인은 어떤 상황에서 시행해야 하나요?"
 
-            if st.button("💬 감염관리 위원회 구성 요건을 알려줘", use_container_width=True, key="q_infection"):
+            if st.button("💬 구두처방을 받았을 때 어떻게 수행해야 하나요?", use_container_width=True, key="q_verbal_order"):
                 st.session_state.processing_new_query = True
-                quick_query = "감염관리 위원회의 구성 요건과 주요 역할은 무엇인가요?"
+                quick_query = "구두처방을 받았을 때 직원은 어떻게 수행해야 하나요?"
 
-            if st.button("💬 직원의 CPR 이수 기준을 알려줘", use_container_width=True, key="q_cpr"):
+            if st.button("💬 낙상 고위험 환자는 어떻게 관리하나요?", use_container_width=True, key="q_fall_high_risk"):
                 st.session_state.processing_new_query = True
-                quick_query = "직원의 심폐소생술(CPR) 교육 이수 기준과 유효기간은?"
+                quick_query = "낙상 고위험 환자는 어떻게 분류하고 관리하나요?"
 
         with c2:
-            if st.button("💬 화재 발생 시 R.A.C.E. 대응 절차를 알려줘", use_container_width=True, key="q_fire"):
+            if st.button("💬 환자안전사고 발생 시 어떻게 보고해야 하나요?", use_container_width=True, key="q_patient_safety_event"):
                 st.session_state.processing_new_query = True
-                quick_query = "화재 발생 시 상황별 대응 매뉴얼(R.A.C.E.) 내용을 요약해줘."
+                quick_query = "환자안전사고가 발생하면 직원은 어떻게 보고해야 하나요?"
 
-            if st.button("💬 근접오류 보고 활성화 방법을 알려줘", use_container_width=True, key="q_nearmiss"):
+            if st.button("💬 손위생은 언제 반드시 시행해야 하나요?", use_container_width=True, key="q_hand_hygiene"):
                 st.session_state.processing_new_query = True
-                quick_query = "근접오류(Near Miss) 정의와 보고 활성화 방안은?"
+                quick_query = "손위생은 어떤 순간에 반드시 시행해야 하나요?"
 
-            if st.button("💬 병동 환경 점검 필수 항목을 알려줘", use_container_width=True, key="q_ward"):
+            if st.button("💬 화재 발생 시 직원은 어떤 순서로 대응해야 하나요?", use_container_width=True, key="q_fire_response"):
                 st.session_state.processing_new_query = True
-                quick_query = "병동 환경 점검 체크리스트 필수 항목을 알려주세요."
+                quick_query = "화재 발생 시 직원은 어떤 순서로 대응해야 하나요?"
 
         st.write("<br>", unsafe_allow_html=True)
 
